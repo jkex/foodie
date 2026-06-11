@@ -79,6 +79,12 @@ Run the dev server:
 pnpm dev
 ```
 
+If you need to expose the dev server on a specific host, use:
+
+```bash
+pnpm dev --host 127.0.0.1
+```
+
 The local app runs at:
 
 ```text

@@ -14,7 +14,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "db:generate": "drizzle-kit generate",
-    "db:migrations:local": "wrangler d1 migrations apply foodie --local",
+    "db:migrations:local": "wrangler d1 migrations apply DB --local",
     "db:migrations:staging": "wrangler d1 migrations apply DB --env staging --remote",
     "db:migrations:production": "wrangler d1 migrations apply DB --env production --remote",
     "db:migrations:remote": "pnpm db:migrations:staging",
