@@ -3,7 +3,7 @@ import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import { env } from 'cloudflare:workers';
 import { ingredients, mealPlanItems, mealPlans, recipeIngredients, recipes } from '../db/schema';
 
-type Database = DrizzleD1Database<{
+export type Database = DrizzleD1Database<{
 	ingredients: typeof ingredients;
 	mealPlanItems: typeof mealPlanItems;
 	mealPlans: typeof mealPlans;
@@ -80,16 +80,17 @@ export function getDb(): Database {
 	});
 }
 
-export async function listRecipes(db: Database): Promise<Recipe[]> {
+export async function listRecipes(db: Database, userId: string): Promise<Recipe[]> {
 	const rows = await db
 		.select()
 		.from(recipes)
+		.where(eq(recipes.userId, userId))
 		.orderBy(sql`${recipes.lastCookedAt} IS NOT NULL`, asc(recipes.lastCookedAt), asc(recipes.rotationIndex), asc(recipes.id));
 
 	return rows.map(toRecipe);
 }
 
-export async function listRecipeIngredients(db: Database, recipeId: number): Promise<RecipeIngredient[]> {
+export async function listRecipeIngredients(db: Database, userId: string, recipeId: number): Promise<RecipeIngredient[]> {
 	const rows = await db
 		.select({
 			id: recipeIngredients.id,
@@ -103,7 +104,8 @@ export async function listRecipeIngredients(db: Database, recipeId: number): Pro
 		})
 		.from(recipeIngredients)
 		.innerJoin(ingredients, eq(ingredients.id, recipeIngredients.ingredientId))
-		.where(eq(recipeIngredients.recipeId, recipeId))
+		.innerJoin(recipes, eq(recipes.id, recipeIngredients.recipeId))
+		.where(and(eq(recipeIngredients.recipeId, recipeId), eq(recipes.userId, userId)))
 		.orderBy(asc(ingredients.category), asc(ingredients.name));
 
 	return rows.map((row) => ({
@@ -120,6 +122,7 @@ export async function listRecipeIngredients(db: Database, recipeId: number): Pro
 
 export async function createRecipe(
 	db: Database,
+	userId: string,
 	input: {
 		name: string;
 		description: string;
@@ -129,10 +132,11 @@ export async function createRecipe(
 		ingredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>;
 	},
 ): Promise<number> {
-	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes);
+	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes).where(eq(recipes.userId, userId));
 	const [recipe] = await db
 		.insert(recipes)
 		.values({
+			userId,
 			name: input.name,
 			description: input.description,
 			instructions: input.instructions,
@@ -146,16 +150,59 @@ export async function createRecipe(
 		throw new Error('Failed to create recipe');
 	}
 
-	await replaceRecipeIngredients(db, recipe.id, input.ingredients);
+	await replaceRecipeIngredients(db, userId, recipe.id, input.ingredients);
 	return recipe.id;
 }
 
-export async function deleteRecipe(db: Database, recipeId: number): Promise<void> {
-	await db.delete(recipes).where(eq(recipes.id, recipeId));
+export async function getRecipe(db: Database, userId: string, recipeId: number): Promise<Recipe | null> {
+	const [row] = await db
+		.select()
+		.from(recipes)
+		.where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
+		.limit(1);
+	return row ? toRecipe(row) : null;
+}
+
+export async function updateRecipe(
+	db: Database,
+	userId: string,
+	recipeId: number,
+	input: {
+		name: string;
+		description: string;
+		instructions: string;
+		baseServings: number;
+		defaultDays: number;
+		ingredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>;
+	},
+): Promise<void> {
+	const owned = await getRecipe(db, userId, recipeId);
+	if (!owned) {
+		return;
+	}
+
+	await db
+		.update(recipes)
+		.set({
+			name: input.name,
+			description: input.description,
+			instructions: input.instructions,
+			baseServings: input.baseServings,
+			defaultDays: input.defaultDays,
+			updatedAt: sql`CURRENT_TIMESTAMP`,
+		})
+		.where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+
+	await replaceRecipeIngredients(db, userId, recipeId, input.ingredients);
+}
+
+export async function deleteRecipe(db: Database, userId: string, recipeId: number): Promise<void> {
+	await db.delete(recipes).where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
 }
 
 async function replaceRecipeIngredients(
 	db: Database,
+	userId: string,
 	recipeId: number,
 	inputIngredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>,
 ): Promise<void> {
@@ -169,18 +216,23 @@ async function replaceRecipeIngredients(
 		await db
 			.insert(ingredients)
 			.values({
+				userId,
 				name: ingredient.name,
 				category: ingredient.category || 'Other',
 			})
 			.onConflictDoUpdate({
-				target: ingredients.name,
+				target: [ingredients.userId, ingredients.name],
 				set: {
 					category: ingredient.category || 'Other',
 					updatedAt: sql`CURRENT_TIMESTAMP`,
 				},
 			});
 
-		const [row] = await db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.name, ingredient.name)).limit(1);
+		const [row] = await db
+			.select({ id: ingredients.id })
+			.from(ingredients)
+			.where(and(eq(ingredients.name, ingredient.name), eq(ingredients.userId, userId)))
+			.limit(1);
 		if (!row) {
 			throw new Error(`Failed to find ingredient: ${ingredient.name}`);
 		}
@@ -195,12 +247,12 @@ async function replaceRecipeIngredients(
 	}
 }
 
-export async function latestMealPlan(db: Database): Promise<MealPlan | null> {
-	const [row] = await db.select().from(mealPlans).orderBy(sql`${mealPlans.createdAt} DESC`, sql`${mealPlans.id} DESC`).limit(1);
+export async function latestMealPlan(db: Database, userId: string): Promise<MealPlan | null> {
+	const [row] = await db.select().from(mealPlans).where(eq(mealPlans.userId, userId)).orderBy(sql`${mealPlans.createdAt} DESC`, sql`${mealPlans.id} DESC`).limit(1);
 	return row ? toMealPlan(row) : null;
 }
 
-export async function listMealPlanItems(db: Database, mealPlanId: number): Promise<MealPlanItem[]> {
+export async function listMealPlanItems(db: Database, userId: string, mealPlanId: number): Promise<MealPlanItem[]> {
 	const rows = await db
 		.select({
 			id: mealPlanItems.id,
@@ -214,7 +266,8 @@ export async function listMealPlanItems(db: Database, mealPlanId: number): Promi
 		})
 		.from(mealPlanItems)
 		.innerJoin(recipes, eq(recipes.id, mealPlanItems.recipeId))
-		.where(eq(mealPlanItems.mealPlanId, mealPlanId))
+		.innerJoin(mealPlans, eq(mealPlans.id, mealPlanItems.mealPlanId))
+		.where(and(eq(mealPlanItems.mealPlanId, mealPlanId), eq(mealPlans.userId, userId)))
 		.orderBy(asc(mealPlanItems.startDayIndex));
 
 	return rows.map((row) => ({
@@ -229,7 +282,7 @@ export async function listMealPlanItems(db: Database, mealPlanId: number): Promi
 	}));
 }
 
-export async function shoppingListForPlan(db: Database, mealPlanId: number): Promise<ShoppingListItem[]> {
+export async function shoppingListForPlan(db: Database, userId: string, mealPlanId: number): Promise<ShoppingListItem[]> {
 	const totalQuantity = sql<number>`SUM(${recipeIngredients.quantity} * ${mealPlanItems.servingMultiplier})`;
 	const notes = sql<string | null>`GROUP_CONCAT(NULLIF(${recipeIngredients.note}, ''), '; ')`;
 
@@ -242,9 +295,10 @@ export async function shoppingListForPlan(db: Database, mealPlanId: number): Pro
 			notes,
 		})
 		.from(mealPlanItems)
+		.innerJoin(mealPlans, eq(mealPlans.id, mealPlanItems.mealPlanId))
 		.innerJoin(recipeIngredients, eq(recipeIngredients.recipeId, mealPlanItems.recipeId))
 		.innerJoin(ingredients, eq(ingredients.id, recipeIngredients.ingredientId))
-		.where(eq(mealPlanItems.mealPlanId, mealPlanId))
+		.where(and(eq(mealPlanItems.mealPlanId, mealPlanId), eq(mealPlans.userId, userId)))
 		.groupBy(sql`LOWER(${ingredients.name})`, ingredients.category, recipeIngredients.unit)
 		.orderBy(asc(ingredients.category), asc(ingredients.name));
 
@@ -253,11 +307,13 @@ export async function shoppingListForPlan(db: Database, mealPlanId: number): Pro
 
 export async function createMealPlan(
 	db: Database,
+	userId: string,
 	input: { startDate: string; plannedDayCount: number; peopleCount: number },
 ): Promise<number> {
 	const [mealPlan] = await db
 		.insert(mealPlans)
 		.values({
+			userId,
 			startDate: input.startDate,
 			plannedDayCount: input.plannedDayCount,
 			peopleCount: input.peopleCount,
@@ -286,9 +342,64 @@ export async function addMealPlanItem(
 	await db.insert(mealPlanItems).values(input);
 }
 
-export async function commitMealPlanRotation(db: Database, mealPlanId: number): Promise<void> {
-	const items = await listMealPlanItems(db, mealPlanId);
-	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes);
+export async function getMealPlan(db: Database, userId: string, mealPlanId: number): Promise<MealPlan | null> {
+	const [row] = await db
+		.select()
+		.from(mealPlans)
+		.where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.userId, userId)))
+		.limit(1);
+	return row ? toMealPlan(row) : null;
+}
+
+export async function setMealPlanItemDays(db: Database, itemId: number, dayCount: number): Promise<void> {
+	await db.update(mealPlanItems).set({ dayCount }).where(eq(mealPlanItems.id, itemId));
+}
+
+export async function setMealPlanItemRecipe(db: Database, itemId: number, recipeId: number): Promise<void> {
+	await db.update(mealPlanItems).set({ recipeId }).where(eq(mealPlanItems.id, itemId));
+}
+
+/**
+ * Recompute start day indexes, clamp blocks to the plan's day budget, and refresh
+ * serving multipliers after an item edit. Items pushed entirely past the planned
+ * day count are removed.
+ */
+export async function resequenceMealPlan(db: Database, userId: string, mealPlanId: number): Promise<void> {
+	const plan = await getMealPlan(db, userId, mealPlanId);
+	if (!plan) {
+		return;
+	}
+
+	const items = await listMealPlanItems(db, userId, mealPlanId);
+	const recipeRows = await db
+		.select({ id: recipes.id, baseServings: recipes.baseServings })
+		.from(recipes)
+		.where(eq(recipes.userId, userId));
+	const baseServingsById = new Map(recipeRows.map((row) => [row.id, row.baseServings]));
+	let dayIndex = 0;
+
+	for (const item of items) {
+		if (dayIndex >= plan.planned_day_count) {
+			await db.delete(mealPlanItems).where(eq(mealPlanItems.id, item.id));
+			continue;
+		}
+
+		const dayCount = Math.min(Math.max(1, item.day_count), plan.planned_day_count - dayIndex);
+		const baseServings = baseServingsById.get(item.recipe_id) ?? 1;
+		const servingMultiplier = (plan.people_count * dayCount) / baseServings;
+
+		await db
+			.update(mealPlanItems)
+			.set({ startDayIndex: dayIndex, dayCount, peopleCount: plan.people_count, servingMultiplier })
+			.where(eq(mealPlanItems.id, item.id));
+
+		dayIndex += dayCount;
+	}
+}
+
+export async function commitMealPlanRotation(db: Database, userId: string, mealPlanId: number): Promise<void> {
+	const items = await listMealPlanItems(db, userId, mealPlanId);
+	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes).where(eq(recipes.userId, userId));
 	let rotationIndex = maxRotation?.value ?? 0;
 	const cookedAt = new Date().toISOString();
 
@@ -301,7 +412,7 @@ export async function commitMealPlanRotation(db: Database, mealPlanId: number): 
 				rotationIndex,
 				updatedAt: sql`CURRENT_TIMESTAMP`,
 			})
-			.where(eq(recipes.id, item.recipe_id));
+			.where(and(eq(recipes.id, item.recipe_id), eq(recipes.userId, userId)));
 	}
 
 	await db
@@ -310,7 +421,7 @@ export async function commitMealPlanRotation(db: Database, mealPlanId: number): 
 			status: 'accepted',
 			updatedAt: sql`CURRENT_TIMESTAMP`,
 		})
-		.where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.status, 'draft')));
+		.where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.userId, userId), eq(mealPlans.status, 'draft')));
 }
 
 function toRecipe(row: typeof recipes.$inferSelect): Recipe {

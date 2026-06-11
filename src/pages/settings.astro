@@ -1,0 +1,113 @@
+---
+import { LogOut, Sparkles } from '@lucide/astro';
+import PageHeader from '../components/PageHeader.astro';
+import Badge from '../components/ui/Badge.astro';
+import Button from '../components/ui/Button.astro';
+import Field from '../components/ui/Field.astro';
+import Input from '../components/ui/Input.astro';
+import Panel from '../components/ui/Panel.astro';
+import Select from '../components/ui/Select.astro';
+import AppLayout from '../layouts/AppLayout.astro';
+import { DEFAULT_MODELS, getAiSettings, type AiSettings } from '../lib/ai';
+import { getDb } from '../lib/db';
+import { useTranslations } from '../lib/i18n';
+
+let ai: AiSettings | null = null;
+try {
+	ai = await getAiSettings(getDb(), Astro.locals.userId);
+} catch {
+	// Without a database binding the AI section just shows as not configured.
+}
+
+const { locale, t } = useTranslations(Astro);
+const provider = ai?.provider ?? 'anthropic';
+---
+
+<AppLayout active="settings" title={t('settingsNav')}>
+	<section class="grid gap-4">
+		<PageHeader title={t('settingsNav')} />
+		<Panel class="grid gap-4">
+			<Field label={t('language')}>
+				<Select id="locale-select">
+					<option value="en" selected={locale === 'en'}>{t('english')}</option>
+					<option value="de" selected={locale === 'de'}>{t('german')}</option>
+				</Select>
+			</Field>
+			<Field label={t('theme')}>
+				<Select id="theme-select">
+					<option value="system">{t('system')}</option>
+					<option value="light">{t('light')}</option>
+					<option value="dark">{t('dark')}</option>
+				</Select>
+			</Field>
+			<form method="post" action="/logout">
+				<Button variant="secondary">
+					<LogOut size={16} strokeWidth={2} />
+					{t('signOut')}
+				</Button>
+			</form>
+		</Panel>
+
+		<Panel class="grid gap-4">
+			<div class="flex items-center justify-between gap-3">
+				<div class="flex items-center gap-2">
+					<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+					<h2 class="m-0 text-lg font-semibold tracking-tight">{t('aiSection')}</h2>
+				</div>
+				<Badge tone={ai ? 'accent' : 'neutral'}>{ai ? t('aiConfigured') : t('aiNotConfigured')}</Badge>
+			</div>
+			<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">{t('aiSectionHelp')}</p>
+			<form method="post" action="/api/ai/settings" class="grid gap-4">
+				<input type="hidden" name="action" value="save" />
+				<div class="grid gap-4 sm:grid-cols-2">
+					<Field label={t('aiProvider')}>
+						<Select name="provider">
+							<option value="anthropic" selected={provider === 'anthropic'}>Anthropic (Claude)</option>
+							<option value="openai" selected={provider === 'openai'}>OpenAI</option>
+						</Select>
+					</Field>
+					<Field label={t('aiModel')}>
+						<Input name="model" value={ai?.model ?? ''} placeholder={DEFAULT_MODELS[provider]} />
+					</Field>
+				</div>
+				<Field label={t('aiApiKey')}>
+					<Input type="password" name="api_key" autocomplete="off" placeholder={ai ? '••••••••' : 'sk-...'} />
+				</Field>
+				{ai && <p class="m-0 -mt-2 text-xs text-neutral-500 dark:text-neutral-400">{t('aiApiKeyKeepHelp')}</p>}
+				<div class="flex flex-wrap gap-2">
+					<Button>{t('aiSave')}</Button>
+				</div>
+			</form>
+			{ai && (
+				<form method="post" action="/api/ai/settings">
+					<input type="hidden" name="action" value="delete" />
+					<Button variant="danger">{t('aiRemoveKey')}</Button>
+				</form>
+			)}
+		</Panel>
+	</section>
+
+	<script is:inline>
+		// Locale lives in a cookie so the server renders the right language; changing it reloads.
+		const localeSelect = document.getElementById('locale-select');
+		localeSelect?.addEventListener('change', () => {
+			document.cookie = `foodie.locale=${localeSelect.value}; path=/; max-age=31536000; samesite=lax`;
+			location.reload();
+		});
+
+		// Theme is client-only and lives in localStorage.
+		const themeSelect = document.getElementById('theme-select');
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		function applyTheme(theme) {
+			const safeTheme = ['system', 'light', 'dark'].includes(theme) ? theme : 'system';
+			document.documentElement.classList.toggle('dark', safeTheme === 'dark' || (safeTheme === 'system' && media.matches));
+			if (themeSelect) themeSelect.value = safeTheme;
+		}
+		applyTheme(localStorage.getItem('foodie.theme') || 'system');
+		themeSelect?.addEventListener('change', () => {
+			localStorage.setItem('foodie.theme', themeSelect.value);
+			applyTheme(themeSelect.value);
+		});
+		media.addEventListener('change', () => applyTheme(localStorage.getItem('foodie.theme') || 'system'));
+	</script>
+</AppLayout>

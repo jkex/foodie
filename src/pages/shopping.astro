@@ -1,0 +1,99 @@
+---
+import PageHeader from '../components/PageHeader.astro';
+import Alert from '../components/ui/Alert.astro';
+import EmptyState from '../components/ui/EmptyState.astro';
+import Panel from '../components/ui/Panel.astro';
+import AppLayout from '../layouts/AppLayout.astro';
+import { getDb, shoppingListForPlan, type MealPlan, type ShoppingListItem } from '../lib/db';
+import { formatQuantity, useTranslations } from '../lib/i18n';
+import { ensureWeeklyPlan } from '../lib/plan';
+import { translateCategory } from '../lib/preferences';
+
+let mealPlan: MealPlan | null = null;
+let shoppingList: ShoppingListItem[] = [];
+let databaseError = '';
+
+try {
+	const db = getDb();
+	mealPlan = await ensureWeeklyPlan(db, Astro.locals.userId);
+	if (mealPlan) {
+		shoppingList = await shoppingListForPlan(db, Astro.locals.userId, mealPlan.id);
+	}
+} catch (error) {
+	databaseError = error instanceof Error ? error.message : 'Unknown database error';
+}
+
+const { locale, t } = useTranslations(Astro);
+
+const groups = new Map<string, ShoppingListItem[]>();
+for (const item of shoppingList) {
+	const category = item.category || 'Other';
+	groups.set(category, [...(groups.get(category) ?? []), item]);
+}
+---
+
+<AppLayout active="shopping" title={t('shoppingList')}>
+	<section class="grid gap-4" data-shopping-list data-plan-id={mealPlan?.id ?? ''}>
+		<PageHeader title={t('shoppingList')} />
+
+		{databaseError && (
+			<Alert title={t('databaseSetupNeeded')}>
+				<p class="m-0">{databaseError}</p>
+			</Alert>
+		)}
+
+		{shoppingList.length > 0 ? (
+			[...groups.entries()].map(([category, items]) => (
+				<Panel>
+					<h2 class="mt-0 mb-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+						{translateCategory(locale, category)}
+					</h2>
+					<ul class="m-0 grid list-none gap-1 p-0">
+						{items.map((item) => (
+							<li>
+								<label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-neutral-50 has-checked:opacity-50 dark:hover:bg-neutral-800/60">
+									<input
+										type="checkbox"
+										data-shopping-item={`${category}|${item.name}|${item.unit}`}
+										class="h-5 w-5 shrink-0 rounded border-neutral-300 accent-emerald-600 dark:accent-emerald-500"
+									/>
+									<span class="text-sm">
+										<strong class="font-semibold">{formatQuantity(item.total_quantity)} {item.unit}</strong> {item.name}
+										{item.notes && <small class="block text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</small>}
+									</span>
+								</label>
+							</li>
+						))}
+					</ul>
+				</Panel>
+			))
+		) : (
+			!databaseError && <EmptyState title={t('noPlan')} description={t('generatePlanForShopping')} />
+		)}
+	</section>
+
+	<script is:inline>
+		// Checked-off state is purely local UI state, persisted per plan in localStorage.
+		const list = document.querySelector('[data-shopping-list]');
+		const planId = list?.getAttribute('data-plan-id');
+		if (list && planId) {
+			const storageKey = `foodie.shopping.${planId}`;
+			let checked;
+			try {
+				checked = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+			} catch {
+				checked = new Set();
+			}
+			const boxes = list.querySelectorAll('[data-shopping-item]');
+			boxes.forEach((box) => {
+				const key = box.getAttribute('data-shopping-item');
+				box.checked = checked.has(key);
+				box.addEventListener('change', () => {
+					if (box.checked) checked.add(key);
+					else checked.delete(key);
+					localStorage.setItem(storageKey, JSON.stringify([...checked]));
+				});
+			});
+		}
+	</script>
+</AppLayout>

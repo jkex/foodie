@@ -1,0 +1,49 @@
+---
+import { Sparkles } from '@lucide/astro';
+import { useTranslations } from '../../lib/i18n';
+import Button from '../ui/Button.astro';
+import Panel from '../ui/Panel.astro';
+import Textarea from '../ui/Textarea.astro';
+
+const { mode, recipeId, configured, error } = Astro.props as {
+	mode: 'generate' | 'edit';
+	recipeId?: number;
+	configured: boolean;
+	error?: string;
+};
+const { t } = useTranslations(Astro);
+const isEdit = mode === 'edit';
+---
+
+<Panel>
+	<div class="mb-3 flex items-center gap-2">
+		<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+		<h2 class="m-0 text-lg font-semibold tracking-tight">{isEdit ? t('editWithAi') : t('generateWithAi')}</h2>
+	</div>
+
+	{error && (
+		<p class="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+			<strong class="block">{t('aiErrorTitle')}</strong>
+			{error}
+		</p>
+	)}
+
+	{configured ? (
+		<form method="post" action="/api/ai/recipe" class="grid gap-3">
+			<input type="hidden" name="action" value={isEdit ? 'edit' : 'generate'} />
+			{isEdit && <input type="hidden" name="id" value={recipeId} />}
+			<Textarea name="prompt" rows="2" required placeholder={isEdit ? t('aiEditPlaceholder') : t('aiPromptPlaceholder')} />
+			<div>
+				<Button>
+					<Sparkles size={16} strokeWidth={2} />
+					{isEdit ? t('aiApplyButton') : t('aiGenerateButton')}
+				</Button>
+			</div>
+		</form>
+	) : (
+		<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+			{t('aiSettingsHint')}
+			<a href="/settings" class="ml-1 font-medium text-emerald-700 underline dark:text-emerald-400">{t('settingsNav')}</a>
+		</p>
+	)}
+</Panel>

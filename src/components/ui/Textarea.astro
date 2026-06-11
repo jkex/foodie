@@ -1,0 +1,10 @@
+---
+const { class: className = '', ...rest } = Astro.props as { class?: string; [key: string]: unknown };
+---
+
+<textarea
+	class:list={[
+		'w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-950 shadow-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/20',
+		className,
+	]}
+	{...rest}><slot /></textarea>

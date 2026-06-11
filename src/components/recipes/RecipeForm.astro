@@ -1,0 +1,82 @@
+---
+import { Plus } from '@lucide/astro';
+import type { Recipe, RecipeIngredient } from '../../lib/db';
+import { useTranslations } from '../../lib/i18n';
+import Button from '../ui/Button.astro';
+import Field from '../ui/Field.astro';
+import Input from '../ui/Input.astro';
+import Textarea from '../ui/Textarea.astro';
+import IngredientRow from './IngredientRow.astro';
+
+const { recipe, ingredients = [], disabled = false } = Astro.props as {
+	recipe?: Recipe;
+	ingredients?: RecipeIngredient[];
+	disabled?: boolean;
+};
+const { t } = useTranslations(Astro);
+const isEdit = Boolean(recipe);
+---
+
+<form method="post" action="/api/recipes" class="grid gap-4">
+	<input type="hidden" name="action" value={isEdit ? 'update' : 'create'} />
+	{recipe && <input type="hidden" name="id" value={recipe.id} />}
+
+	<div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
+		<Field label={t('name')}>
+			<Input name="name" required placeholder={t('recipeNamePlaceholder')} value={recipe?.name ?? ''} />
+		</Field>
+		<Field label={t('baseServings')}>
+			<Input type="number" name="base_servings" value={String(recipe?.base_servings ?? 2)} min="1" step="0.5" required />
+		</Field>
+		<Field label={t('defaultDays')}>
+			<Input type="number" name="default_days" value={String(recipe?.default_days ?? 1)} min="1" max="7" required />
+		</Field>
+	</div>
+
+	<Field label={t('description')}>
+		<Input name="description" placeholder={t('descriptionPlaceholder')} value={recipe?.description ?? ''} />
+	</Field>
+
+	<Field label={t('instructions')}>
+		<Textarea name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}>{recipe?.instructions ?? ''}</Textarea>
+	</Field>
+
+	<div class="grid gap-2">
+		<span class="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t('ingredients')}</span>
+		<div class="grid gap-2" data-ingredient-rows>
+			{ingredients.map((ingredient) => (
+				<IngredientRow ingredient={ingredient} />
+			))}
+			{ingredients.length === 0 && <IngredientRow />}
+		</div>
+		<template data-ingredient-template>
+			<IngredientRow />
+		</template>
+		<Button variant="secondary" type="button" data-add-ingredient class="w-fit">
+			<Plus size={16} strokeWidth={2} />
+			{t('addIngredient')}
+		</Button>
+	</div>
+
+	<div>
+		<Button disabled={disabled}>{isEdit ? t('saveChanges') : t('saveRecipe')}</Button>
+	</div>
+</form>
+
+<script is:inline>
+	document.querySelectorAll('[data-add-ingredient]').forEach((button) => {
+		const form = button.closest('form');
+		const rows = form.querySelector('[data-ingredient-rows]');
+		const template = form.querySelector('[data-ingredient-template]');
+		button.addEventListener('click', () => {
+			rows.appendChild(template.content.cloneNode(true));
+		});
+	});
+
+	document.addEventListener('click', (event) => {
+		const remove = event.target.closest('[data-remove-ingredient]');
+		if (remove) {
+			remove.closest('[data-ingredient-row]')?.remove();
+		}
+	});
+</script>

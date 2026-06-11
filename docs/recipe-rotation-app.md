@@ -4,6 +4,8 @@
 
 Build a full-stack TypeScript app for managing personal recipes, generating a rotating meal plan, and producing a useful shopping list for the selected planning period.
 
+The app is mobile-first and should be installable as a PWA. Core weekly planning and shopping workflows must be comfortable on a phone before optimizing desktop layouts.
+
 The app should support one main cooked meal per planned day. The user can configure how many days need cooked food for a given plan. For example, a normal week may need 7 days of food, while a week with travel over the weekend may only need 5 days.
 
 Core behavior:
@@ -20,7 +22,7 @@ Core behavior:
 Defaults:
 
 - People count: `2`
-- Cooked-food days per plan: `5`
+- Cooked-food days per plan: `7`
 - Main meals per cooked-food day: `1`
 
 ## Core User Workflows
@@ -77,8 +79,12 @@ Use:
 
 - Astro
 - TypeScript
-- Cloudflare Pages
+- Cloudflare Workers
 - Cloudflare D1
+- Drizzle ORM
+- Tailwind CSS
+- pnpm
+- WorkOS AuthKit
 
 Use Cloudflare D1 instead of Worker KV because the app needs relational data and aggregation across:
 
@@ -207,6 +213,15 @@ Notes:
 
 The generator fills the configured number of cooked-food days, not always 7 calendar days.
 
+Automatic weekly plan:
+
+1. Plans always start on a Monday.
+2. When the plan or shopping pages load and the latest plan starts before the current target Monday (or no plan exists), a draft plan is generated automatically with the defaults (7 cooked-food days, 2 people).
+3. Monday through Wednesday, the target Monday is the current week's Monday.
+4. From Thursday onward, the target Monday is next week's Monday.
+5. Auto-generation is skipped while there are no recipes.
+6. Implemented in `ensureWeeklyPlan` / `weeklyPlanStartDate` in `src/lib/plan.ts`.
+
 Rules:
 
 1. Default `planned_day_count` is `7`.
@@ -330,6 +345,46 @@ Capabilities:
 - Show summed quantity and unit.
 - Support checking items off locally in the UI.
 
+### Mobile PWA Shell
+
+Capabilities:
+
+- Installable app manifest.
+- Service worker for basic app shell caching.
+- Mobile safe-area spacing.
+- Bottom navigation for primary mobile workflows.
+- System/light/dark theme support.
+- Browser language detection with English and German UI strings.
+- WorkOS AuthKit login with Google and Apple.
+
+Primary mobile navigation:
+
+- Plan
+- Recipes
+- Shopping
+- Settings
+
+Implemented route structure:
+
+```text
+/             redirects to /plan
+/plan         latest plan + generate form
+/plan/edit    adjust draft: block days, replace recipe, regenerate, accept
+/recipes      searchable list (?q=)
+/recipes/new  create recipe with structured ingredient rows
+/recipes/[id] edit or delete recipe
+/shopping     list grouped by category, local check-offs
+/settings
+```
+
+Future route structure:
+
+```text
+/history
+```
+
+`/history` is secondary and should not crowd the first mobile bottom nav unless usage proves it belongs there.
+
 ## API / Server Actions
 
 Prefer Astro server actions or API routes for mutations.
@@ -360,7 +415,7 @@ Important behavior:
 
 Target deployment:
 
-- Cloudflare Pages
+- Cloudflare Workers
 - Astro Cloudflare adapter
 - Cloudflare D1 binding
 
@@ -371,6 +426,16 @@ Expected implementation files:
 - D1 migration files
 - TypeScript config
 - Cloudflare D1 database binding
+
+Deployment notes:
+
+- `main` is staging.
+- `prod` is production.
+- Staging D1 database: `foodie`.
+- Production D1 database: `foodie-production`.
+- D1 binding name must remain `DB`.
+- Do not add `pages_build_output_dir` to `wrangler.toml`; this app deploys as a Worker with assets, not as a Pages project.
+- Build with the correct `CLOUDFLARE_ENV` before deploy so Astro emits the correct generated Wrangler config.
 
 ## Related Documents
 
@@ -397,4 +462,5 @@ The first implementation should satisfy:
 - Draft plan generation does not update rotation history.
 - Accepting a plan moves used recipes to the end of the rotation.
 - Shopping list groups duplicate ingredients and sums matching units.
-- App is ready to deploy to Cloudflare Pages with D1.
+- App is ready to deploy to Cloudflare Workers with D1.
+- App is mobile-first and installable as a PWA.

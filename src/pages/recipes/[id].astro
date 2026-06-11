@@ -1,0 +1,72 @@
+---
+import PageHeader from '../../components/PageHeader.astro';
+import AiRecipePanel from '../../components/recipes/AiRecipePanel.astro';
+import RecipeForm from '../../components/recipes/RecipeForm.astro';
+import Alert from '../../components/ui/Alert.astro';
+import Badge from '../../components/ui/Badge.astro';
+import Button from '../../components/ui/Button.astro';
+import Panel from '../../components/ui/Panel.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import { getAiSettings } from '../../lib/ai';
+import { getDb, getRecipe, listRecipeIngredients, type Recipe, type RecipeIngredient } from '../../lib/db';
+import { formatLastCooked, useTranslations } from '../../lib/i18n';
+
+const recipeId = Number(Astro.params.id);
+if (!Number.isInteger(recipeId) || recipeId <= 0) {
+	return Astro.redirect('/recipes');
+}
+
+let recipe: Recipe | null = null;
+let ingredients: RecipeIngredient[] = [];
+let aiConfigured = false;
+let databaseError = '';
+
+try {
+	const db = getDb();
+	recipe = await getRecipe(db, Astro.locals.userId, recipeId);
+	if (recipe) {
+		ingredients = await listRecipeIngredients(db, Astro.locals.userId, recipe.id);
+	}
+	aiConfigured = Boolean(await getAiSettings(db, Astro.locals.userId));
+} catch (error) {
+	databaseError = error instanceof Error ? error.message : 'Unknown database error';
+}
+
+if (!recipe && !databaseError) {
+	return Astro.redirect('/recipes');
+}
+
+const { locale, t } = useTranslations(Astro);
+const lastCooked = recipe ? formatLastCooked(locale, recipe.last_cooked_at) : null;
+const aiError = Astro.url.searchParams.get('ai_error') ?? undefined;
+---
+
+<AppLayout active="recipes" title={recipe?.name ?? t('editRecipe')}>
+	<section class="grid gap-4">
+		<PageHeader title={recipe?.name ?? t('editRecipe')} backHref="/recipes" backLabel={t('recipes')}>
+			<Badge slot="action" tone={lastCooked ? 'accent' : 'amber'}>
+				{lastCooked ? `${t('lastCooked')}: ${lastCooked}` : t('neverCooked')}
+			</Badge>
+		</PageHeader>
+
+		{databaseError && (
+			<Alert title={t('databaseSetupNeeded')}>
+				<p class="m-0">{databaseError}</p>
+			</Alert>
+		)}
+
+		{recipe && (
+			<>
+				<AiRecipePanel mode="edit" recipeId={recipe.id} configured={aiConfigured} error={aiError} />
+				<Panel>
+					<RecipeForm recipe={recipe} ingredients={ingredients} />
+				</Panel>
+				<form method="post" action="/api/recipes">
+					<input type="hidden" name="action" value="delete" />
+					<input type="hidden" name="id" value={recipe.id} />
+					<Button variant="danger">{t('deleteRecipe')}</Button>
+				</form>
+			</>
+		)}
+	</section>
+</AppLayout>

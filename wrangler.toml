@@ -1,6 +1,6 @@
 name = "foodie-staging"
 compatibility_date = "2026-06-11"
-pages_build_output_dir = "./dist"
+compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
@@ -11,6 +11,13 @@ migrations_dir = "migrations"
 [env.staging]
 name = "foodie-staging"
 
+[env.staging.secrets]
+required = [
+  "WORKOS_API_KEY",
+  "WORKOS_CLIENT_ID",
+  "WORKOS_COOKIE_PASSWORD",
+]
+
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "foodie"
@@ -19,6 +26,13 @@ migrations_dir = "migrations"
 
 [env.production]
 name = "foodie"
+
+[env.production.secrets]
+required = [
+  "WORKOS_API_KEY",
+  "WORKOS_CLIENT_ID",
+  "WORKOS_COOKIE_PASSWORD",
+]
 
 [[env.production.d1_databases]]
 binding = "DB"
