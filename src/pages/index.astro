@@ -12,6 +12,7 @@ import {
 	type RecipeIngredient,
 	type ShoppingListItem,
 } from '../lib/db';
+import { detectLocale, translations, type Locale, type TranslationKey } from '../lib/preferences';
 import '../styles/global.css';
 
 let recipes: Recipe[] = [];
@@ -35,19 +36,21 @@ try {
 }
 
 const today = new Date().toISOString().slice(0, 10);
+const locale = detectLocale(Astro.request.headers.get('accept-language'));
+const t = (key: TranslationKey) => translations[locale][key];
 
 function formatQuantity(value: number) {
 	return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-const panelClass = 'rounded-lg border border-[#dfe5dc] bg-white p-5';
-const inputClass = 'w-full rounded-md border border-[#c9d1c7] px-3 py-2 font-normal';
+const panelClass = 'rounded-lg border border-[#dfe5dc] bg-white p-5 dark:border-slate-700 dark:bg-slate-900';
+const inputClass = 'w-full rounded-md border border-[#c9d1c7] bg-white px-3 py-2 font-normal text-[#1f2522] dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100';
 const labelClass = 'grid gap-1.5 font-bold';
 const buttonClass = 'cursor-pointer rounded-md bg-[#1f5f4a] px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50';
 const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 font-bold text-white';
 ---
 
-<html lang="en">
+<html lang={locale}>
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -55,115 +58,137 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Foodie</title>
+		<script is:inline>
+			const storedTheme = localStorage.getItem('foodie.theme') || 'system';
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			document.documentElement.classList.toggle('dark', storedTheme === 'dark' || (storedTheme === 'system' && prefersDark));
+		</script>
 	</head>
-	<body class="m-0 bg-[#f6f7f2] font-sans text-[#1f2522]">
-		<header class="mx-auto max-w-[1180px] px-8 pt-8">
+	<body class="m-0 bg-[#f6f7f2] font-sans text-[#1f2522] dark:bg-slate-950 dark:text-slate-100">
+		<header class="mx-auto flex max-w-[1180px] flex-col gap-6 px-8 pt-8 md:flex-row md:items-start md:justify-between">
 			<div>
 				<p class="mb-4 font-extrabold text-[#1f5f4a] uppercase">Foodie</p>
-				<h1 class="m-0 max-w-3xl text-5xl leading-none font-bold md:text-6xl">Recipe rotation and shopping list</h1>
+				<h1 data-i18n="appTitle" class="m-0 max-w-3xl text-5xl leading-none font-bold md:text-6xl">{t('appTitle')}</h1>
+			</div>
+			<div class="grid gap-3 rounded-lg border border-[#dfe5dc] bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900 md:min-w-56">
+				<label class="grid gap-1 font-bold">
+					<span data-i18n="language">{t('language')}</span>
+					<select id="locale-select" class={inputClass}>
+						<option value="en" selected={locale === 'en'} data-i18n="english">{t('english')}</option>
+						<option value="de" selected={locale === 'de'} data-i18n="german">{t('german')}</option>
+					</select>
+				</label>
+				<label class="grid gap-1 font-bold">
+					<span data-i18n="theme">{t('theme')}</span>
+					<select id="theme-select" class={inputClass}>
+						<option value="system" data-i18n="system">{t('system')}</option>
+						<option value="light" data-i18n="light">{t('light')}</option>
+						<option value="dark" data-i18n="dark">{t('dark')}</option>
+					</select>
+				</label>
 			</div>
 		</header>
 
 		<main class="mx-auto max-w-[1180px] p-8">
 			{databaseError && (
-				<section class="mb-4 rounded-lg border border-[#e3c567] bg-[#fff7e0] p-5">
-					<h2 class="mt-0 text-2xl font-bold">Database setup needed</h2>
+				<section class="mb-4 rounded-lg border border-[#e3c567] bg-[#fff7e0] p-5 dark:border-amber-600 dark:bg-amber-950">
+					<h2 data-i18n="databaseSetupNeeded" class="mt-0 text-2xl font-bold">{t('databaseSetupNeeded')}</h2>
 					<p class="mt-0">{databaseError}</p>
-					<p>Apply the D1 migration and bind the database as <code>DB</code> before using the app.</p>
+					<p><span data-i18n="databaseSetupHelp">{t('databaseSetupHelp')}</span> <code>DB</code> <span data-i18n="beforeUsingApp">{t('beforeUsingApp')}</span></p>
 				</section>
 			)}
 
 			<section class="my-4 grid items-start gap-4 md:grid-cols-2">
 				<div class={panelClass}>
-					<h2 class="mt-0 text-2xl font-bold">Generate plan</h2>
+					<h2 data-i18n="generatePlan" class="mt-0 text-2xl font-bold">{t('generatePlan')}</h2>
 					<form method="post" action="/api/plans" class="grid gap-4">
 						<label class={labelClass}>
-							Start date
+							<span data-i18n="startDate">{t('startDate')}</span>
 							<input class={inputClass} type="date" name="start_date" value={today} required />
 						</label>
 						<label class={labelClass}>
-							Cooked-food days
+							<span data-i18n="cookedFoodDays">{t('cookedFoodDays')}</span>
 							<input class={inputClass} type="number" name="planned_day_count" value="7" min="1" max="14" required />
 						</label>
 						<label class={labelClass}>
-							People
+							<span data-i18n="people">{t('people')}</span>
 							<input class={inputClass} type="number" name="people_count" value="2" min="1" max="20" required />
 						</label>
-						<button class={buttonClass} type="submit" disabled={Boolean(databaseError) || recipes.length === 0}>Generate draft</button>
+						<button data-i18n="generateDraft" class={buttonClass} type="submit" disabled={Boolean(databaseError) || recipes.length === 0}>{t('generateDraft')}</button>
 					</form>
 				</div>
 
 				<div class={panelClass}>
-					<h2 class="mt-0 text-2xl font-bold">Latest plan</h2>
+					<h2 data-i18n="latestPlan" class="mt-0 text-2xl font-bold">{t('latestPlan')}</h2>
 					{mealPlan ? (
 						<>
 							<p class="mt-0">
-								<strong>{mealPlan.planned_day_count}</strong> cooked-food days for <strong>{mealPlan.people_count}</strong> people, starting <strong>{mealPlan.start_date}</strong>.
+								<strong>{mealPlan.planned_day_count}</strong> <span data-i18n="cookedFoodDaysFor">{t('cookedFoodDaysFor')}</span> <strong>{mealPlan.people_count}</strong> <span data-i18n="peopleStarting">{t('peopleStarting')}</span> <strong>{mealPlan.start_date}</strong>.
 							</p>
 							<ol class="grid list-none gap-3 p-0">
 								{mealPlanItems.map((item) => (
-									<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3">
-										<span class="block text-[#5f6f68]">Day {item.start_day_index + 1}</span>
+									<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
+										<span class="block text-[#5f6f68] dark:text-slate-400"><span data-i18n="day">{t('day')}</span> {item.start_day_index + 1}</span>
 										<strong>{item.recipe_name}</strong>
-										<small class="block text-[#5f6f68]">{item.day_count} day{item.day_count === 1 ? '' : 's'}, {item.serving_multiplier.toFixed(2)}x ingredients</small>
+										<small class="block text-[#5f6f68] dark:text-slate-400">{item.day_count} <span data-i18n={item.day_count === 1 ? 'daySingular' : 'dayPlural'}>{item.day_count === 1 ? t('daySingular') : t('dayPlural')}</span>, {item.serving_multiplier.toFixed(2)}x <span data-i18n="ingredientsMultiplier">{t('ingredientsMultiplier')}</span></small>
 									</li>
 								))}
 							</ol>
 							{mealPlan.status === 'draft' && (
 								<form method="post" action="/api/plans/commit">
 									<input type="hidden" name="meal_plan_id" value={mealPlan.id} />
-									<button class={buttonClass} type="submit">Accept plan and rotate recipes</button>
+									<button data-i18n="acceptPlan" class={buttonClass} type="submit">{t('acceptPlan')}</button>
 								</form>
 							)}
 						</>
 					) : (
-						<p class="mt-0">No plan generated yet.</p>
+						<p data-i18n="noPlan" class="mt-0">{t('noPlan')}</p>
 					)}
 				</div>
 			</section>
 
 			<section class={panelClass}>
-				<h2 class="mt-0 text-2xl font-bold">Add recipe</h2>
+				<h2 data-i18n="addRecipe" class="mt-0 text-2xl font-bold">{t('addRecipe')}</h2>
 				<form method="post" action="/api/recipes" class="grid gap-4 md:grid-cols-3">
 					<label class={labelClass}>
-						Name
-						<input class={inputClass} name="name" required placeholder="Pasta with tomato sauce" />
+						<span data-i18n="name">{t('name')}</span>
+						<input data-i18n-placeholder="recipeNamePlaceholder" class={inputClass} name="name" required placeholder={t('recipeNamePlaceholder')} />
 					</label>
 					<label class={labelClass}>
-						Base servings
+						<span data-i18n="baseServings">{t('baseServings')}</span>
 						<input class={inputClass} type="number" name="base_servings" value="2" min="1" step="0.5" required />
 					</label>
 					<label class={labelClass}>
-						Default days
+						<span data-i18n="defaultDays">{t('defaultDays')}</span>
 						<input class={inputClass} type="number" name="default_days" value="1" min="1" max="7" required />
 					</label>
 					<label class={`${labelClass} md:col-span-3`}>
-						Description
-						<input class={inputClass} name="description" placeholder="Quick weekday dinner" />
+						<span data-i18n="description">{t('description')}</span>
+						<input data-i18n-placeholder="descriptionPlaceholder" class={inputClass} name="description" placeholder={t('descriptionPlaceholder')} />
 					</label>
 					<label class={`${labelClass} md:col-span-3`}>
-						Instructions
-						<textarea class={inputClass} name="instructions" rows="4" placeholder="Cook, combine, season."></textarea>
+						<span data-i18n="instructions">{t('instructions')}</span>
+						<textarea data-i18n-placeholder="instructionsPlaceholder" class={inputClass} name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}></textarea>
 					</label>
 					<label class={`${labelClass} md:col-span-3`}>
-						Ingredients
-						<textarea class={inputClass} name="ingredients" rows="6" placeholder={`One per line: name | quantity | unit | category | note\nPasta | 200 | g | Dry goods |\nTomatoes | 1 | can | Canned | chopped`}></textarea>
+						<span data-i18n="ingredients">{t('ingredients')}</span>
+						<textarea data-i18n-placeholder="ingredientsPlaceholder" class={inputClass} name="ingredients" rows="6" placeholder={t('ingredientsPlaceholder')}></textarea>
 					</label>
-					<button class={buttonClass} type="submit" disabled={Boolean(databaseError)}>Save recipe</button>
+					<button data-i18n="saveRecipe" class={buttonClass} type="submit" disabled={Boolean(databaseError)}>{t('saveRecipe')}</button>
 				</form>
 			</section>
 
 			<section class="my-4 grid items-start gap-4 md:grid-cols-2">
 				<div class={panelClass}>
-					<h2 class="mt-0 text-2xl font-bold">Recipes</h2>
+					<h2 data-i18n="recipes" class="mt-0 text-2xl font-bold">{t('recipes')}</h2>
 					{recipes.length > 0 ? (
 						<div class="grid gap-3">
 							{recipes.map((recipe) => (
-								<article class="grid gap-3 rounded-lg border border-[#e0e6df] p-3">
+								<article class="grid gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
 									<div>
 										<h3 class="mt-0 text-xl font-bold">{recipe.name}</h3>
-										<p class="mt-0">{recipe.description || 'No description yet.'}</p>
-										<small class="block text-[#5f6f68]">{recipe.base_servings} base servings, usually {recipe.default_days} day{recipe.default_days === 1 ? '' : 's'}</small>
+										<p class="mt-0">{recipe.description || t('noDescription')}</p>
+										<small class="block text-[#5f6f68] dark:text-slate-400">{recipe.base_servings} <span data-i18n="baseServingsUsually">{t('baseServingsUsually')}</span> {recipe.default_days} <span data-i18n={recipe.default_days === 1 ? 'daySingular' : 'dayPlural'}>{recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}</span></small>
 									</div>
 									<ul>
 										{(ingredientsByRecipe.get(recipe.id) ?? []).map((ingredient) => (
@@ -173,35 +198,86 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 									<form method="post" action="/api/recipes">
 										<input type="hidden" name="action" value="delete" />
 										<input type="hidden" name="id" value={recipe.id} />
-										<button type="submit" class={secondaryButtonClass}>Delete</button>
+										<button data-i18n="delete" type="submit" class={secondaryButtonClass}>{t('delete')}</button>
 									</form>
 								</article>
 							))}
 						</div>
 					) : (
-						<p class="mt-0">No recipes yet.</p>
+						<p data-i18n="noRecipes" class="mt-0">{t('noRecipes')}</p>
 					)}
 				</div>
 
 				<div class={panelClass}>
-					<h2 class="mt-0 text-2xl font-bold">Shopping list</h2>
+					<h2 data-i18n="shoppingList" class="mt-0 text-2xl font-bold">{t('shoppingList')}</h2>
 					{shoppingList.length > 0 ? (
 						<ul class="grid list-none gap-3 p-0">
 							{shoppingList.map((item) => (
-								<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3">
+								<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
 									<input type="checkbox" />
 									<span>
 										<strong>{formatQuantity(item.total_quantity)} {item.unit}</strong> {item.name}
-										<small class="block text-[#5f6f68]">{item.category}{item.notes ? ` - ${item.notes}` : ''}</small>
+										<small class="block text-[#5f6f68] dark:text-slate-400">{item.category}{item.notes ? ` - ${item.notes}` : ''}</small>
 									</span>
 								</li>
 							))}
 						</ul>
 					) : (
-						<p class="mt-0">Generate a plan to see the shopping list.</p>
+						<p data-i18n="generatePlanForShopping" class="mt-0">{t('generatePlanForShopping')}</p>
 					)}
 				</div>
 			</section>
 		</main>
+		<script type="application/json" id="foodie-translations" set:html={JSON.stringify(translations)} />
+		<script is:inline>
+			const translations = JSON.parse(document.getElementById('foodie-translations').textContent || '{}');
+			const localeSelect = document.getElementById('locale-select');
+			const themeSelect = document.getElementById('theme-select');
+			const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+			function browserLocale() {
+				return navigator.language && navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en';
+			}
+
+			function applyLocale(locale) {
+				const safeLocale = translations[locale] ? locale : 'en';
+				document.documentElement.lang = safeLocale;
+				document.querySelectorAll('[data-i18n]').forEach((node) => {
+					const key = node.getAttribute('data-i18n');
+					if (key && translations[safeLocale][key]) node.textContent = translations[safeLocale][key];
+				});
+				document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {
+					const key = node.getAttribute('data-i18n-placeholder');
+					if (key && translations[safeLocale][key]) node.setAttribute('placeholder', translations[safeLocale][key]);
+				});
+				if (localeSelect) localeSelect.value = safeLocale;
+			}
+
+			function applyTheme(theme) {
+				const safeTheme = ['system', 'light', 'dark'].includes(theme) ? theme : 'system';
+				const dark = safeTheme === 'dark' || (safeTheme === 'system' && media.matches);
+				document.documentElement.classList.toggle('dark', dark);
+				if (themeSelect) themeSelect.value = safeTheme;
+			}
+
+			const storedLocale = localStorage.getItem('foodie.locale');
+			const initialLocale = storedLocale || browserLocale();
+			applyLocale(initialLocale);
+			applyTheme(localStorage.getItem('foodie.theme') || 'system');
+
+			localeSelect?.addEventListener('change', () => {
+				localStorage.setItem('foodie.locale', localeSelect.value);
+				applyLocale(localeSelect.value);
+			});
+
+			themeSelect?.addEventListener('change', () => {
+				localStorage.setItem('foodie.theme', themeSelect.value);
+				applyTheme(themeSelect.value);
+			});
+
+			media.addEventListener('change', () => {
+				applyTheme(localStorage.getItem('foodie.theme') || 'system');
+			});
+		</script>
 	</body>
 </html>

@@ -82,6 +82,15 @@ Use Tailwind utility classes for app UI. Do not add shadcn/ui unless the app gai
 
 The first version is server-rendered Astro with regular HTML forms and API routes.
 
+Theme and language preferences use a small no-framework client script in `src/pages/index.astro`:
+
+- Initial locale is chosen from the request `Accept-Language` header.
+- Browser language is used client-side if no stored locale exists.
+- User locale overrides are stored in `localStorage` under `foodie.locale`.
+- Theme supports `system`, `light`, and `dark`.
+- Theme overrides are stored in `localStorage` under `foodie.theme`.
+- `system` theme follows `prefers-color-scheme`.
+
 Prefer this pattern until there is a clear need for client-side state, such as:
 
 - Drag-and-drop meal planning
