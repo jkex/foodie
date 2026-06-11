@@ -58,7 +58,7 @@ const aiError = Astro.url.searchParams.get('ai_error') ?? undefined;
 		)}
 
 		{recipe && (() => {
-			const isPublicRecipe = recipe.userId === 'local' && Astro.locals.userId !== 'local';
+			const isPublicRecipe = recipe.userId === 'system';
 			return (
 				<>
 					{isPublicRecipe && (
