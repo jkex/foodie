@@ -11,6 +11,7 @@ import Panel from '../components/ui/Panel.astro';
 import AppLayout from '../layouts/AppLayout.astro';
 import { getDb, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../lib/db';
 import { formatPlanDay, useTranslations } from '../lib/i18n';
+import { translateRecipeName } from '../lib/preferences';
 import { ensureWeeklyPlan } from '../lib/plan';
 
 let recipes: Recipe[] = [];
@@ -65,7 +66,7 @@ const hasPlan = Boolean(mealPlan);
 								{formatPlanDay(locale, mealPlan!.start_date, item.start_day_index)}
 							</span>
 							<span>
-								<strong class="block text-sm font-semibold">{item.recipe_name}</strong>
+								<strong class="block text-sm font-semibold">{translateRecipeName(locale, item.recipe_name)}</strong>
 								<small class="text-xs text-neutral-500 dark:text-neutral-400">
 									{item.day_count} {item.day_count === 1 ? t('daySingular') : t('dayPlural')}, {item.serving_multiplier.toFixed(2)}x {t('ingredientsMultiplier')}
 								</small>
@@ -107,7 +108,7 @@ const hasPlan = Boolean(mealPlan);
 						<Input type="date" name="start_date" value={today} required />
 					</Field>
 					<Field label={t('cookedFoodDays')}>
-						<Input type="number" name="planned_day_count" value="7" min="1" max="14" required />
+						<Input type="number" name="planned_day_count" value="5" min="1" max="14" required />
 					</Field>
 					<Field label={t('people')}>
 						<Input type="number" name="people_count" value="2" min="1" max="20" required />

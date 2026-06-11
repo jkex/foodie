@@ -8,7 +8,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const db = getDb();
 	const userId = locals.userId;
 	const startDate = String(formData.get('start_date') || new Date().toISOString().slice(0, 10));
-	const plannedDayCount = positiveInteger(formData, 'planned_day_count', 7);
+	const plannedDayCount = positiveInteger(formData, 'planned_day_count', 5);
 	const peopleCount = positiveInteger(formData, 'people_count', 2);
 	const recipes = await listRecipes(db, userId);
 	const plan = buildPlan(recipes, plannedDayCount, peopleCount);

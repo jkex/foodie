@@ -38,12 +38,16 @@ export async function getSession(request: Request) {
 		return null;
 	}
 
-	const session = await workos.userManagement.authenticateWithSessionCookie({
-		sessionData,
-		cookiePassword: config.cookiePassword,
-	});
-
-	return session.authenticated ? session : null;
+	try {
+		const session = await workos.userManagement.authenticateWithSessionCookie({
+			sessionData,
+			cookiePassword: config.cookiePassword,
+		});
+		return session.authenticated ? session : null;
+	} catch (error) {
+		console.error('Failed to authenticate session cookie:', error);
+		return null;
+	}
 }
 
 export function getAppUrl(request: Request) {
