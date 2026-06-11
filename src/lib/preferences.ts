@@ -102,6 +102,13 @@ export const translations = {
 		aiEditPlaceholder: 'e.g. Make it vegetarian and scale to 4 servings',
 		aiApplyButton: 'Apply change',
 		aiErrorTitle: 'AI request failed',
+		aiChatTitle: 'AI Recipe Assistant',
+		aiChatPlaceholder: 'Ask AI to modify the recipe (e.g. scale to 4 servings, make it spicy...)',
+		aiSend: 'Send',
+		aiApplying: 'Applying...',
+		aiApplyToForm: 'Apply changes to recipe form',
+		aiPreviewTitle: 'AI Proposed Changes Preview',
+		aiThinking: 'AI is thinking...',
 		language: 'Language',
 		english: 'English',
 		german: 'German',
@@ -217,6 +224,13 @@ export const translations = {
 		aiEditPlaceholder: 'z. B. Mach es vegetarisch und skaliere auf 4 Portionen',
 		aiApplyButton: 'Änderung anwenden',
 		aiErrorTitle: 'KI-Anfrage fehlgeschlagen',
+		aiChatTitle: 'KI-Rezeptassistent',
+		aiChatPlaceholder: 'KI bitten, das Rezept anzupassen (z. B. auf 4 Portionen skalieren, schärfer machen...)',
+		aiSend: 'Senden',
+		aiApplying: 'Wird angewendet...',
+		aiApplyToForm: 'Änderungen in Rezeptformular übernehmen',
+		aiPreviewTitle: 'Vorschau der vorgeschlagenen KI-Änderungen',
+		aiThinking: 'KI überlegt...',
 		language: 'Sprache',
 		english: 'Englisch',
 		german: 'Deutsch',
@@ -259,3 +273,343 @@ export function translateCategory(locale: Locale, category: string): string {
 	const key = CATEGORY_KEYS[category.trim().toLowerCase()];
 	return key ? translations[locale][key] : category;
 }
+
+const INGREDIENT_TRANSLATIONS: Record<string, Record<Locale, string>> = {
+	'rolled oats': { en: 'Rolled Oats', de: 'Haferflocken' },
+	'chia seeds': { en: 'Chia Seeds', de: 'Chiasamen' },
+	'almond milk': { en: 'Almond Milk', de: 'Mandelmilch' },
+	'maple syrup': { en: 'Maple Syrup', de: 'Ahornsirup' },
+	'mixed berries': { en: 'Mixed Berries', de: 'Gemischte Beeren' },
+	'firm tofu': { en: 'Firm Tofu', de: 'Fester Tofu' },
+	'turmeric': { en: 'Turmeric', de: 'Kurkuma' },
+	'tortilla wraps': { en: 'Tortilla Wraps', de: 'Tortilla-Wraps' },
+	'spinach': { en: 'Spinach', de: 'Spinat' },
+	'black beans': { en: 'Black Beans', de: 'Schwarze Bohnen' },
+	'brown lentils': { en: 'Brown Lentils', de: 'Braune Linsen' },
+	'potatoes': { en: 'Potatoes', de: 'Kartoffeln' },
+	'carrots': { en: 'Carrots', de: 'Karotten' },
+	'peas': { en: 'Peas', de: 'Erbsen' },
+	'vegetable broth': { en: 'Vegetable Broth', de: 'Gemüsebrühe' },
+	'canned chickpeas': { en: 'Canned Chickpeas', de: 'Kichererbsen (Dose)' },
+	'cucumber': { en: 'Cucumber', de: 'Gurke' },
+	'cherry tomatoes': { en: 'Cherry Tomatoes', de: 'Kirschtomaten' },
+	'kalamata olives': { en: 'Kalamata Olives', de: 'Kalamata-Oliven' },
+	'olive oil': { en: 'Olive Oil', de: 'Olivenöl' },
+	'lemon juice': { en: 'Lemon Juice', de: 'Zitronensaft' },
+	'canned tomatoes': { en: 'Canned Tomatoes', de: 'Tomaten (Dose)' },
+	'onion': { en: 'Onion', de: 'Zwiebel' },
+	'chili powder': { en: 'Chili Powder', de: 'Chilipulver' },
+	'sweet potato': { en: 'Sweet Potato', de: 'Süßkartoffel' },
+	'bell pepper': { en: 'Bell Pepper', de: 'Paprika' },
+	'coconut milk': { en: 'Coconut Milk', de: 'Kokosmilch' },
+	'curry powder': { en: 'Curry Powder', de: 'Currypulver' },
+	'brown rice': { en: 'Brown Rice', de: 'Brauner Reis' },
+	'pumpkin seeds': { en: 'Pumpkin Seeds', de: 'Kürbiskerne' },
+	'tahini': { en: 'Tahini', de: 'Tahini' },
+	'cannellini beans': { en: 'Cannellini Beans', de: 'Cannellini-Bohnen' },
+	'kale': { en: 'Kale', de: 'Grünkohl' },
+	'garlic': { en: 'Garlic', de: 'Knoblauch' },
+	'broccoli': { en: 'Broccoli', de: 'Brokkoli' },
+	'soy sauce': { en: 'Soy Sauce', de: 'Sojasauce' },
+	'ginger': { en: 'Ginger', de: 'Ingwer' },
+	'jasmine rice': { en: 'Jasmine Rice', de: 'Jasminreis' },
+	'sesame oil': { en: 'Sesame Oil', de: 'Sesamöl' },
+	'spaghetti': { en: 'Spaghetti', de: 'Spaghetti' },
+	'oregano': { en: 'Oregano', de: 'Oregano' },
+	'tempeh': { en: 'Tempeh', de: 'Tempeh' },
+	'snap peas': { en: 'Snap Peas', de: 'Zuckerschoten' },
+	'sesame seeds': { en: 'Sesame Seeds', de: 'Sesamsamen' },
+	'sweet corn': { en: 'Sweet Corn', de: 'Mais' },
+	'cilantro': { en: 'Cilantro', de: 'Koriander' },
+	'lime juice': { en: 'Lime Juice', de: 'Limettensaft' },
+	'soba noodles': { en: 'Soba Noodles', de: 'Sobanudeln' },
+	'peanut butter': { en: 'Peanut Butter', de: 'Erdnussbutter' },
+	'red lentils': { en: 'Red Lentils', de: 'Rote Linsen' },
+	'red onion': { en: 'Red Onion', de: 'Rote Zwiebel' },
+	'butternut squash': { en: 'Butternut Squash', de: 'Butternusskürbis' },
+	'cooked quinoa': { en: 'Cooked Quinoa', de: 'Gekochte Quinoa' },
+	'cumin': { en: 'Cumin', de: 'Kreuzkümmel' },
+	'garlic powder': { en: 'Garlic Powder', de: 'Knoblauchpulver' },
+	'burger buns': { en: 'Burger Buns', de: 'Burger-Brötchen' },
+	'shelled edamame': { en: 'Shelled Edamame', de: 'Edamame (geschält)' },
+	'rice vinegar': { en: 'Rice Vinegar', de: 'Reisessig' },
+	'red kidney beans': { en: 'Red Kidney Beans', de: 'Kidneybohnen' },
+	'chili flakes': { en: 'Chili Flakes', de: 'Chiliflocken' },
+};
+
+export function translateIngredient(locale: Locale, name: string): string {
+	const normalized = name.trim().toLowerCase();
+	const match = INGREDIENT_TRANSLATIONS[normalized];
+	return match ? match[locale] : name;
+}
+
+export type TranslatedRecipeData = {
+	name: string;
+	description: string;
+	instructions: string;
+};
+
+const RECIPE_TRANSLATIONS: Record<string, Record<Locale, TranslatedRecipeData>> = {
+	'Overnight Oats with Chia and Berries': {
+		en: {
+			name: 'Overnight Oats with Chia and Berries',
+			description: 'Fiber-rich, low-prep breakfast ready in the morning.',
+			instructions: '1. Combine rolled oats, chia seeds, and almond milk in a jar.\n2. Stir in maple syrup and mix well.\n3. Cover and refrigerate overnight.\n4. Top with fresh berries before eating.',
+		},
+		de: {
+			name: 'Overnight Oats mit Chia und Beeren',
+			description: 'Ballaststoffreiches, einfaches Frühstück, das morgens fertig ist.',
+			instructions: '1. Haferflocken, Chiasamen und Mandelmilch in einem Glas vermengen.\n2. Ahornsirup hinzufügen und gut umrühren.\n3. Abdecken und über Nacht in den Kühlschrank stellen.\n4. Vor dem Servieren mit frischen Beeren garnieren.',
+		},
+	},
+	'Tofu Scramble Breakfast Burrito': {
+		en: {
+			name: 'Tofu Scramble Breakfast Burrito',
+			description: 'High-protein vegan breakfast wraps, perfect for meal prepping.',
+			instructions: '1. Crumble tofu into a bowl and mix with turmeric and salt.\n2. Saute spinach and black beans in a pan.\n3. Add crumbled tofu and cook for 5 minutes.\n4. Wrap mixture in tortilla wraps and store.',
+		},
+		de: {
+			name: 'Tofu-Rührei-Frühstücksburrito',
+			description: 'Proteinreiche vegane Frühstückswraps, perfekt zum Vorkochen.',
+			instructions: '1. Tofu in eine Schüssel krümeln und mit Kurkuma und Salz vermischen.\n2. Spinat und schwarze Bohnen in einer Pfanne anbraten.\n3. Gekrümelten Tofu hinzufügen und 5 Minuten garen.\n4. Die Mischung in Tortilla-Wraps wickeln und lagern.',
+		},
+	},
+	'Classic Lentil Shepherd\'s Pie': {
+		en: {
+			name: 'Classic Lentil Shepherd\'s Pie',
+			description: 'Hearty, comforting protein-packed pie topped with mashed potatoes.',
+			instructions: '1. Boil potatoes and mash with olive oil.\n2. Cook lentils with carrots, onion, peas, and vegetable broth.\n3. Transfer lentil mix to baking dish, top with mashed potatoes.\n4. Bake at 200°C for 25 minutes.',
+		},
+		de: {
+			name: 'Klassischer Linsen-Shepherd\'s-Pie',
+			description: 'Herzhafter, wärmender Auflauf mit Linsen und Kartoffelpüree.',
+			instructions: '1. Kartoffeln kochen und mit Olivenöl zerstampfen.\n2. Linsen mit Karotten, Zwiebel, Erbsen und Gemüsebrühe kochen.\n3. Linsenmischung in eine Auflaufform füllen, mit Kartoffelpüree bestreichen.\n4. Bei 200°C 25 Minuten backen.',
+		},
+	},
+	'Mediterranean Chickpea Salad': {
+		en: {
+			name: 'Mediterranean Chickpea Salad',
+			description: 'Zesty, refreshing, and high-fiber meal-prep salad.',
+			instructions: '1. Rinse chickpeas and toss in a large bowl.\n2. Add diced cucumber, cherry tomatoes, and sliced kalamata olives.\n3. Drizzle with olive oil and lemon juice.\n4. Mix well and store in airtight containers.',
+		},
+		de: {
+			name: 'Mediterraner Kichererbsensalat',
+			description: 'Würziger, erfrischender und ballaststoffreicher Salat zum Vorkochen.',
+			instructions: '1. Kichererbsen abspülen und in eine große Schüssel geben.\n2. Gewürfelte Gurke, Kirschtomaten und geschnittene Kalamata-Oliven hinzufügen.\n3. Mit Olivenöl und Zitronensaft beträufeln.\n4. Gut mischen und in luftdichten Behältern lagern.',
+		},
+	},
+	'Spicy Black Bean Chili': {
+		en: {
+			name: 'Spicy Black Bean Chili',
+			description: 'Smoky, rich, and high-fiber chili that gets better the next day.',
+			instructions: '1. Saute diced onion, sweet potato, and bell pepper in a pot.\n2. Add black beans, canned tomatoes, and chili powder.\n3. Simmer for 30 minutes until sweet potatoes are tender.\n4. Serve or portion for prep.',
+		},
+		de: {
+			name: 'Scharfes schwarzes Bohnen-Chili',
+			description: 'Würziges, reichhaltiges und ballaststoffreiches Chili, das am nächsten Tag noch besser schmeckt.',
+			instructions: '1. Gewürfelte Zwiebel, Süßkartoffel und Paprika in einem Topf anbraten.\n2. Schwarze Bohnen, Tomatendose und Chilipulver hinzufügen.\n3. 30 Minuten köcheln lassen, bis die Süßkartoffeln weich sind.\n4. Servieren oder portionieren.',
+		},
+	},
+	'Coconut Chickpea Curry': {
+		en: {
+			name: 'Coconut Chickpea Curry',
+			description: 'Creamy, aromatic, and comforting beginner-friendly curry.',
+			instructions: '1. Cook rice and set aside.\n2. Cook onion and curry powder in a pan.\n3. Add canned chickpeas, coconut milk, and simmer for 15 minutes.\n4. Stir in spinach until wilted, serve with rice.',
+		},
+		de: {
+			name: 'Kokos-Kichererbsen-Curry',
+			description: 'Cremiges, aromatisches und wärmendes Curry für Anfänger.',
+			instructions: '1. Reis kochen und beiseite stellen.\n2. Zwiebel und Currypulver in einer Pfanne anbraten.\n3. Kichererbsen und Kokosmilch hinzufügen und 15 Minuten köcheln lassen.\n4. Spinat unterrühren, bis er zusammenfällt, mit Reis servieren.',
+		},
+	},
+	'Quinoa Salad with Sweet Potato': {
+		en: {
+			name: 'Quinoa Salad with Sweet Potato',
+			description: 'Nutrient-dense grain salad with sweet potatoes and tahini dressing.',
+			instructions: '1. Roast diced sweet potato with olive oil.\n2. Cook quinoa in vegetable broth.\n3. Mix quinoa, roasted sweet potatoes, spinach, and pumpkin seeds.\n4. Whisk tahini with lemon juice and toss.',
+		},
+		de: {
+			name: 'Quinoasalat mit Süßkartoffel',
+			description: 'Nährstoffreicher Getreidesalat mit Süßkartoffeln und Tahini-Dressing.',
+			instructions: '1. Gewürfelte Süßkartoffel mit Olivenöl im Ofen rösten.\n2. Quinoa in Gemüsebrühe kochen.\n3. Quinoa, geröstete Süßkartoffeln, Spinat und Kürbiskerne vermischen.\n4. Tahini mit Zitronensaft verrühren und unterheben.',
+		},
+	},
+	'Creamy Tuscan White Bean Soup': {
+		en: {
+			name: 'Creamy Tuscan White Bean Soup',
+			description: 'Garlicky, warm, and highly nutritious white bean and kale soup.',
+			instructions: '1. Saute garlic and onion in a large pot.\n2. Add cannellini beans, canned tomatoes, and vegetable broth.\n3. Simmer for 20 minutes, then mash some beans to thicken.\n4. Stir in chopped kale and cook for 5 minutes.',
+		},
+		de: {
+			name: 'Cremige toskanische weiße Bohnensuppe',
+			description: 'Knoblauchige, warme und nahrhafte Suppe mit weißen Bohnen und Grünkohl.',
+			instructions: '1. Knoblauch und Zwiebel in einem großen Topf anbraten.\n2. Cannellini-Bohnen, Tomatendose und Gemüsebrühe hinzufügen.\n3. 20 Minuten köcheln lassen, dann einige Bohnen zerdrücken, um die Suppe einzudicken.\n4. Gehackten Grünkohl unterrühren und 5 Minuten garen.',
+		},
+	},
+	'Stir-Fry Tofu with Broccoli': {
+		en: {
+			name: 'Stir-Fry Tofu with Broccoli',
+			description: 'Easy protein-packed weekday stir-fry with broccoli and rice.',
+			instructions: '1. Press and cube tofu, then pan-sear until crispy.\n2. Cook broccoli florets with soy sauce, ginger, and sesame oil.\n3. Add tofu back to the pan and toss.\n4. Serve with cooked jasmine rice.',
+		},
+		de: {
+			name: 'Tofu-Brokkoli-Pfanne',
+			description: 'Einfaches, proteinreiches Wokgericht mit Brokkoli und Jasminreis.',
+			instructions: '1. Tofu pressen, würfeln und in der Pfanne knusprig anbraten.\n2. Brokkoliröschen mit Sojasauce, Ingwer und Sesamöl garen.\n3. Tofu zurück in die Pfanne geben und schwenken.\n4. Mit gekochtem Jasminreis servieren.',
+		},
+	},
+	'Lentil Bolognese with Pasta': {
+		en: {
+			name: 'Lentil Bolognese with Pasta',
+			description: 'A wholesome, fiber-rich plant-based twist on traditional Bolognese.',
+			instructions: '1. Cook spaghetti according to package directions.\n2. Saute onion, garlic, and carrots in a pan.\n3. Add brown lentils, canned tomatoes, oregano, and simmer for 20 minutes.\n4. Mix with cooked pasta and serve.',
+		},
+		de: {
+			name: 'Linsenbolognese mit Nudeln',
+			description: 'Gesunde, ballaststoffreiche pflanzliche Variante der klassischen Bolognese.',
+			instructions: '1. Spaghetti nach Packungsanleitung kochen.\n2. Zwiebel, Knoblauch und Karotten in einer Pfanne anbraten.\n3. Braune Linsen, Tomatendose, Oregano hinzufügen und 20 Minuten köcheln lassen.\n4. Mit gekochten Nudeln mischen und servieren.',
+		},
+	},
+	'Roasted Veggie Buddah Bowl': {
+		en: {
+			name: 'Roasted Veggie Buddah Bowl',
+			description: 'Bright, colorful veggie bowl packed with fiber and protein.',
+			instructions: '1. Roast broccoli and sweet potato on a baking sheet.\n2. Prepare brown rice.\n3. Assemble bowls with rice, chickpeas, broccoli, and sweet potato.\n4. Drizzle with a simple tahini dressing.',
+		},
+		de: {
+			name: 'Buddha-Bowl mit geröstetem Gemüse',
+			description: 'Bunte, vitaminreiche Gemüse-Bowl voller Ballaststoffe und Proteine.',
+			instructions: '1. Brokkoli und Süßkartoffel auf einem Backblech rösten.\n2. Naturreis kochen.\n3. Bowls mit Reis, Kichererbsen, Brokkoli und Süßkartoffel anrichten.\n4. Mit einem einfachen Tahini-Dressing beträufeln.',
+		},
+	},
+	'Tempeh Maple-Glazed Stir Fry': {
+		en: {
+			name: 'Tempeh Maple-Glazed Stir Fry',
+			description: 'Nutty, sweet, and savory stir-fry featuring nutrient-dense tempeh.',
+			instructions: '1. Slice tempeh and pan-fry in sesame oil until golden.\n2. Toss in snap peas and bell pepper, stir-fry for 4 minutes.\n3. Stir in soy sauce and maple syrup, cook until glazed.\n4. Sprinkle with sesame seeds and serve.',
+		},
+		de: {
+			name: 'Ahorn-glasierte Tempeh-Pfanne',
+			description: 'Nussiges, süß-saures Wokgericht mit nährstoffreichem Tempeh.',
+			instructions: '1. Tempeh in Scheiben schneiden und in Sesamöl goldbraun anbraten.\n2. Zuckerschoten und Paprika hinzufügen und 4 Minuten pfannenrühren.\n3. Sojasauce und Ahornsirup einrühren, einkochen lassen, bis es glasiert ist.\n4. Mit Sesamsamen bestreuen und servieren.',
+		},
+	},
+	'Mexican Quinoa Salad': {
+		en: {
+			name: 'Mexican Quinoa Salad',
+			description: 'Colorful, protein-packed quinoa salad with lime-cilantro dressing.',
+			instructions: '1. Rinse and cook quinoa.\n2. Toss cooked quinoa with black beans, sweet corn, and bell pepper.\n3. Mix in chopped cilantro and lime juice.\n4. Serve cold or store for lunches.',
+		},
+		de: {
+			name: 'Mexikanischer Quinoasalat',
+			description: 'Bunter, proteinreicher Quinoasalat mit Limetten-Koriander-Dressing.',
+			instructions: '1. Quinoa abspülen und kochen.\n2. Gekochte Quinoa mit schwarzen Bohnen, Mais und Paprika vermengen.\n3. Gehackten Koriander und Limettensaft unterrühren.\n4. Kalt servieren oder für das Mittagessen lagern.',
+		},
+	},
+	'Peanut Noodle Salad with Tofu': {
+		en: {
+			name: 'Peanut Noodle Salad with Tofu',
+			description: 'Flavorful noodle bowl with crispy tofu and a rich peanut dressing.',
+			instructions: '1. Cook soba noodles, drain and rinse.\n2. Saute cubed tofu until crispy.\n3. Whisk peanut butter, soy sauce, and warm water to create dressing.\n4. Toss noodles, carrots, cucumber, tofu, and peanut dressing.',
+		},
+		de: {
+			name: 'Erdnuss-Nudelsalat mit Tofu',
+			description: 'Würzige Nudelschale mit knusprigem Tofu und cremigem Erdnuss-Dressing.',
+			instructions: '1. Sobanudeln kochen, abgießen und abschrecken.\n2. Gewürfelten Tofu knusprig anbraten.\n3. Erdnussbutter, Sojasauce und warmes Wasser zu einem Dressing verrühren.\n4. Nudeln, Karotten, Gurke, Tofu und Erdnuss-Dressing vermengen.',
+		},
+	},
+	'Red Lentil Dahl': {
+		en: {
+			name: 'Red Lentil Dahl',
+			description: 'Traditional, comforting, protein-rich dahl served over rice.',
+			instructions: '1. Heat oil, saute onion, garlic, and ginger.\n2. Add red lentils, canned tomatoes, turmeric, curry powder, and water.\n3. Simmer for 25 minutes until lentils are creamy.\n4. Serve with cooked rice.',
+		},
+		de: {
+			name: 'Rotes Linsen-Dahl',
+			description: 'Traditionelles, wärmendes und proteinreiches Dahl serviert mit Jasminreis.',
+			instructions: '1. Öl erhitzen, Zwiebel, Knoblauch und Ingwer anbraten.\n2. Rote Linsen, Tomatendose, Kurkuma, Currypulver und Wasser hinzufügen.\n3. 25 Minuten köcheln lassen, bis die Linsen cremig sind.\n4. Mit gekochtem Reis servieren.',
+		},
+	},
+	'Tofu Souvlaki Salad Bowl': {
+		en: {
+			name: 'Tofu Souvlaki Salad Bowl',
+			description: 'Mediterranean-inspired tofu bowl with fresh salads.',
+			instructions: '1. Marinade cubed tofu in lemon juice, oregano, and olive oil.\n2. Pan-sear tofu until crispy.\n3. Combine cucumber, cherry tomatoes, and red onion in bowls.\n4. Drizzle cooked tofu with lemon juice.',
+		},
+		de: {
+			name: 'Tofu-Souvlaki-Salatschale',
+			description: 'Mediterran inspirierte Tofu-Schale mit frischen Salaten.',
+			instructions: '1. Gewürfelten Tofu in Zitronensaft, Oregano und Olivenöl marinieren.\n2. Tofu in der Pfanne knusprig anbraten.\n3. Gurke, Kirschtomaten und rote Zwiebel in Schüsseln anrichten.\n4. Den warmen Tofu hinzufügen und mit Zitronensaft beträufeln.',
+		},
+	},
+	'Butternut Squash Soup': {
+		en: {
+			name: 'Butternut Squash Soup',
+			description: 'Silky, sweet, and highly nutritious butternut squash soup.',
+			instructions: '1. Saute onion and garlic in a pot.\n2. Add cubed butternut squash and vegetable broth.\n3. Boil until soft, then blend until completely smooth.\n4. Stir in coconut milk and top with pumpkin seeds.',
+		},
+		de: {
+			name: 'Butternusskürbis-Suppe',
+			description: 'Samtige, süßliche und nahrhafte Kürbissuppe.',
+			instructions: '1. Zwiebel und Knoblauch in einem Topf anbraten.\n2. Gewürfelten Butternusskürbis und Gemüsebrühe hinzufügen.\n3. Weich kochen, dann cremig pürieren.\n4. Kokosmilch unterrühren und mit Kürbiskernen bestreuen.',
+		},
+	},
+	'Black Bean Quinoa Burgers': {
+		en: {
+			name: 'Black Bean Quinoa Burgers',
+			description: 'Wholesome plant-based burger patties that hold together well.',
+			instructions: '1. Mash black beans in a bowl.\n2. Mix in cooked quinoa, oats, cumin, garlic powder, and mix well.\n3. Shape into 4 patties.\n4. Bake at 190°C for 20 minutes (flip halfway), serve on buns.',
+		},
+		de: {
+			name: 'Quinoa-Bohnen-Burger',
+			description: 'Gesunde, pflanzliche Burger-Patties, die gut zusammenhalten.',
+			instructions: '1. Schwarze Bohnen in einer Schüssel zerdrücken.\n2. Gekochte Quinoa, Haferflocken, Kreuzkümmel und Knoblauchpulver unterischen.\n3. Zu 4 Bratlingen formen.\n4. Bei 190°C 20 Minuten backen (nach der Hälfte wenden), auf Brötchen servieren.',
+		},
+	},
+	'Green Edamame Salad': {
+		en: {
+			name: 'Green Edamame Salad',
+			description: 'Crisp, green, high-protein salad featuring edamame.',
+			instructions: '1. Steam edamame and let cool.\n2. Toss edamame, sliced cucumber, and spinach together in a bowl.\n3. Whisk rice vinegar and sesame seeds, drizzle over salad.\n4. Portion and store.',
+		},
+		de: {
+			name: 'Grüner Edamame-Salat',
+			description: 'Knackiger, grüner und proteinreicher Salat mit Edamame.',
+			instructions: '1. Edamame dämpfen und abkühlen lassen.\n2. Edamame, Gurkenscheiben und Spinat in einer Schüssel vermengen.\n3. Reisessig und Sesamsamen verrühren und über den Salat geben.\n4. Portionieren und lagern.',
+		},
+	},
+	'Vegan Chili Sin Carne': {
+		en: {
+			name: 'Vegan Chili Sin Carne',
+			description: 'A thick, protein-heavy chili containing lentils, kidney beans, and corn.',
+			instructions: '1. Heat oil in a large pot and saute onion.\n2. Add red lentils, kidney beans, canned tomatoes, corn, and chili flakes.\n3. Simmer for 30 minutes until lentils are cooked.\n4. Serve hot with cooked brown rice.',
+		},
+		de: {
+			name: 'Veganes Chili sin Carne',
+			description: 'Ein dickflüssiges, proteinreiches Chili mit roten Linsen, Kidneybohnen und Mais.',
+			instructions: '1. Öl in einem großen Topf erhitzen und Zwiebel anbraten.\n2. Rote Linsen, Kidneybohnen, Tomatendose, Mais und Chiliflocken hinzufügen.\n3. 30 Minuten köcheln lassen, bis die Linsen gar sind.\n4. Mit gekochtem Naturreis servieren.',
+		},
+	},
+};
+
+export function translateRecipe<T extends { name: string; description: string; instructions: string }>(
+	locale: Locale,
+	recipe: T
+): T {
+	const match = RECIPE_TRANSLATIONS[recipe.name.trim()];
+	if (match) {
+		return {
+			...recipe,
+			name: match[locale].name,
+			description: match[locale].description,
+			instructions: match[locale].instructions,
+		};
+	}
+	return recipe;
+}
+
+export function translateRecipeName(locale: Locale, name: string): string {
+	const match = RECIPE_TRANSLATIONS[name.trim()];
+	return match ? match[locale].name : name;
+}
+

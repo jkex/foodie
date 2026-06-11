@@ -1,6 +1,6 @@
 ---
 import { X } from '@lucide/astro';
-import { INGREDIENT_CATEGORIES, translateCategory, type Locale } from '../../lib/preferences';
+import { INGREDIENT_CATEGORIES, translateCategory, translateIngredient, type Locale } from '../../lib/preferences';
 import { useTranslations } from '../../lib/i18n';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
@@ -18,7 +18,7 @@ const selectedCategory = ingredient?.category ?? 'Other';
 
 <fieldset class="m-0 grid grid-cols-[1fr_auto] items-start gap-2 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-950/60" data-ingredient-row>
 	<div class="grid gap-2 sm:grid-cols-[2fr_1fr_1fr]">
-		<Input name="ingredient_name" placeholder={t('ingredientNamePlaceholder')} aria-label={t('ingredient')} value={ingredient?.name ?? ''} />
+		<Input name="ingredient_name" placeholder={t('ingredientNamePlaceholder')} aria-label={t('ingredient')} value={translateIngredient(locale as Locale, ingredient?.name ?? '')} />
 		<Input name="ingredient_quantity" type="number" min="0" step="any" placeholder={t('quantity')} aria-label={t('quantity')} value={ingredient ? String(ingredient.quantity) : ''} />
 		<Input name="ingredient_unit" placeholder={t('unit')} aria-label={t('unit')} value={ingredient?.unit ?? ''} />
 		<Select name="ingredient_category" aria-label={t('category')} class="sm:col-span-2">

@@ -65,7 +65,7 @@ export const mealPlans = sqliteTable(
 		id: integer('id').primaryKey({ autoIncrement: true }),
 		userId: text('user_id').notNull().default('local'),
 		startDate: text('start_date').notNull(),
-		plannedDayCount: integer('planned_day_count').notNull().default(7),
+		plannedDayCount: integer('planned_day_count').notNull().default(5),
 		peopleCount: integer('people_count').notNull().default(2),
 		status: text('status', { enum: ['draft', 'accepted'] }).notNull().default('draft'),
 		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

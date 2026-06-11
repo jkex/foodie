@@ -9,6 +9,7 @@ import Select from '../../components/ui/Select.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getDb, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../../lib/db';
 import { formatPlanDay, useTranslations } from '../../lib/i18n';
+import { translateRecipeName } from '../../lib/preferences';
 import { ensureWeeklyPlan } from '../../lib/plan';
 
 let recipes: Recipe[] = [];
@@ -55,7 +56,7 @@ const recipesByName = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
 						<Panel>
 							<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 								<div>
-									<strong class="block text-base font-semibold">{item.recipe_name}</strong>
+									<strong class="block text-base font-semibold">{translateRecipeName(locale, item.recipe_name)}</strong>
 									<small class="text-xs font-medium text-emerald-700 dark:text-emerald-400">
 										{formatPlanDay(locale, draft.start_date, item.start_day_index)}
 										{item.day_count > 1 && ` – ${formatPlanDay(locale, draft.start_date, item.start_day_index + item.day_count - 1)}`}
@@ -80,7 +81,7 @@ const recipesByName = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
 										<span>{t('replaceWith')}</span>
 										<Select name="recipe_id" required>
 											{recipesByName.map((recipe) => (
-												<option value={recipe.id} selected={recipe.id === item.recipe_id}>{recipe.name}</option>
+												<option value={recipe.id} selected={recipe.id === item.recipe_id}>{translateRecipeName(locale, recipe.name)}</option>
 											))}
 										</Select>
 									</label>

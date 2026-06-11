@@ -57,7 +57,7 @@ export function weeklyPlanStartDate(today: Date = new Date()): string {
 /**
  * Make sure a plan exists for the week the user would currently shop for.
  * If the latest plan starts before the target Monday (or there is none), a
- * fresh draft is generated with the default 7 days for 2 people. Returns the
+ * fresh draft is generated with the default 5 days for 2 people. Returns the
  * plan to display, or null when there are no recipes to plan with.
  */
 export async function ensureWeeklyPlan(db: Database, userId: string): Promise<MealPlan | null> {
@@ -72,7 +72,7 @@ export async function ensureWeeklyPlan(db: Database, userId: string): Promise<Me
 		return latest;
 	}
 
-	const plannedDayCount = 7;
+	const plannedDayCount = 5;
 	const peopleCount = 2;
 	const items = buildPlan(recipes, plannedDayCount, peopleCount);
 	const mealPlanId = await createMealPlan(db, userId, { startDate: target, plannedDayCount, peopleCount });

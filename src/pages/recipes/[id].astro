@@ -10,12 +10,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import { getAiSettings } from '../../lib/ai';
 import { getDb, getRecipe, listRecipeIngredients, type Recipe, type RecipeIngredient } from '../../lib/db';
 import { formatLastCooked, useTranslations } from '../../lib/i18n';
+import { translateRecipe } from '../../lib/preferences';
 
 const recipeId = Number(Astro.params.id);
 if (!Number.isInteger(recipeId) || recipeId <= 0) {
 	return Astro.redirect('/recipes');
 }
 
+const { locale, t } = useTranslations(Astro);
 let recipe: Recipe | null = null;
 let ingredients: RecipeIngredient[] = [];
 let aiConfigured = false;
@@ -23,9 +25,10 @@ let databaseError = '';
 
 try {
 	const db = getDb();
-	recipe = await getRecipe(db, Astro.locals.userId, recipeId);
-	if (recipe) {
-		ingredients = await listRecipeIngredients(db, Astro.locals.userId, recipe.id);
+	const rawRecipe = await getRecipe(db, Astro.locals.userId, recipeId);
+	if (rawRecipe) {
+		recipe = translateRecipe(locale, rawRecipe);
+		ingredients = await listRecipeIngredients(db, Astro.locals.userId, rawRecipe.id);
 	}
 	aiConfigured = Boolean(await getAiSettings(db, Astro.locals.userId));
 } catch (error) {
@@ -36,7 +39,6 @@ if (!recipe && !databaseError) {
 	return Astro.redirect('/recipes');
 }
 
-const { locale, t } = useTranslations(Astro);
 const lastCooked = recipe ? formatLastCooked(locale, recipe.last_cooked_at) : null;
 const aiError = Astro.url.searchParams.get('ai_error') ?? undefined;
 ---

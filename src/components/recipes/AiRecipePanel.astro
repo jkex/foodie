@@ -1,5 +1,5 @@
 ---
-import { Sparkles } from '@lucide/astro';
+import { Sparkles, Send } from '@lucide/astro';
 import { useTranslations } from '../../lib/i18n';
 import Button from '../ui/Button.astro';
 import Panel from '../ui/Panel.astro';
@@ -11,39 +11,505 @@ const { mode, recipeId, configured, error } = Astro.props as {
 	configured: boolean;
 	error?: string;
 };
-const { t } = useTranslations(Astro);
+const { locale, t } = useTranslations(Astro);
 const isEdit = mode === 'edit';
 ---
 
-<Panel>
-	<div class="mb-3 flex items-center gap-2">
-		<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
-		<h2 class="m-0 text-lg font-semibold tracking-tight">{isEdit ? t('editWithAi') : t('generateWithAi')}</h2>
-	</div>
+{configured ? (
+	isEdit ? (
+		<div id="ai-chat-layout" class="grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out">
+			<!-- Chat Card -->
+			<div class="rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-5 flex flex-col justify-between min-h-[380px]">
+				<div>
+					<div class="mb-4 flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
+						<div class="flex items-center gap-2">
+							<Sparkles size={20} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400 animate-pulse" />
+							<h2 class="m-0 text-lg font-semibold tracking-tight">{t('aiChatTitle')}</h2>
+						</div>
+						<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-500/20">
+							<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+							Assistant
+						</span>
+					</div>
 
-	{error && (
-		<p class="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-			<strong class="block">{t('aiErrorTitle')}</strong>
-			{error}
-		</p>
-	)}
+					<!-- Chat Messages Window -->
+					<div id="chat-messages" class="flex flex-col gap-3 overflow-y-auto max-h-[260px] pr-2 mb-4 scroll-smooth min-h-[180px]">
+						<!-- Initial Message -->
+						<div class="flex gap-2.5 items-start max-w-[85%]">
+							<div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+								<Sparkles size={14} />
+							</div>
+							<div class="rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2.5 text-sm text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
+								{locale === 'de' 
+								  ? 'Hallo! Ich bin dein KI-Rezeptassistent. Sag mir einfach, wie du dieses Rezept anpassen möchtest (z. B. "mach es scharf", "skaliere es auf 4 Portionen" oder "ersetze Kichererbsen durch Linsen").'
+								  : 'Hi! I\'m your AI recipe assistant. Let me know how you\'d like to modify this recipe (e.g., "make it spicy", "scale to 4 servings", or "swap chickpeas for lentils").'
+								}
+							</div>
+						</div>
+					</div>
+				</div>
 
-	{configured ? (
-		<form method="post" action="/api/ai/recipe" class="grid gap-3">
-			<input type="hidden" name="action" value={isEdit ? 'edit' : 'generate'} />
-			{isEdit && <input type="hidden" name="id" value={recipeId} />}
-			<Textarea name="prompt" rows="2" required placeholder={isEdit ? t('aiEditPlaceholder') : t('aiPromptPlaceholder')} />
-			<div>
-				<Button>
-					<Sparkles size={16} strokeWidth={2} />
-					{isEdit ? t('aiApplyButton') : t('aiGenerateButton')}
-				</Button>
+				<!-- Chat input Form -->
+				<form id="chat-form" class="relative flex items-end gap-2 border border-neutral-200 bg-neutral-50/50 p-1.5 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:border-neutral-800 dark:bg-neutral-950/20 rounded-xl transition-all">
+					<textarea
+						id="chat-input"
+						rows="1"
+						required
+						placeholder={t('aiChatPlaceholder')}
+						class="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-neutral-800 focus:outline-none dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 min-h-[38px] max-h-[100px]"
+					></textarea>
+					<button
+						type="submit"
+						id="chat-send-btn"
+						class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400 transition cursor-pointer"
+						aria-label={t('aiSend')}
+					>
+						<Send size={15} strokeWidth={2.5} />
+					</button>
+				</form>
 			</div>
-		</form>
+
+			<!-- Preview Card (initially hidden) -->
+			<div id="recipe-preview-card" class="hidden flex-col justify-between rounded-2xl border border-emerald-200/80 bg-emerald-50/10 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/10 shadow-sm sm:p-5 min-h-[380px] transition-all duration-300">
+				<div>
+					<div class="mb-4 flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
+						<div class="flex items-center gap-2">
+							<div class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+								<Sparkles size={16} />
+							</div>
+							<h3 class="m-0 text-md font-semibold tracking-tight text-neutral-800 dark:text-neutral-200">{t('aiPreviewTitle')}</h3>
+						</div>
+						<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/10 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-500/20">
+							Draft
+						</span>
+					</div>
+
+					<div class="overflow-y-auto max-h-[250px] pr-2 space-y-4 text-sm" id="preview-content">
+						<!-- Content filled by JS -->
+					</div>
+				</div>
+
+				<div class="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+					<button
+						type="button"
+						id="apply-recipe-btn"
+						class="w-full inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 shadow-md shadow-emerald-500/5 hover:shadow-emerald-500/10 hover:scale-[1.01] active:scale-[0.99] transition duration-200 dark:from-emerald-500 dark:to-teal-400 dark:text-emerald-950 dark:hover:from-emerald-400 dark:hover:to-teal-300"
+					>
+						<Sparkles size={16} strokeWidth={2.5} class="animate-pulse" />
+						<span>{t('aiApplyToForm')}</span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script is:inline define:vars={{ locale, labels: {
+			ingredients: t('ingredients'),
+			instructions: t('instructions'),
+			baseServings: t('baseServings'),
+			defaultDays: t('defaultDays'),
+			applySuccess: locale === 'de' ? 'Änderungen angewendet!' : 'Changes applied!',
+			aiThinking: t('aiThinking'),
+			aiApplyToForm: t('aiApplyToForm')
+		}}}>
+			let chatHistory = [];
+			let currentProposedRecipe = null;
+
+			const chatLayout = document.getElementById('ai-chat-layout');
+			const chatMessages = document.getElementById('chat-messages');
+			const chatForm = document.getElementById('chat-form');
+			const chatInput = document.getElementById('chat-input');
+			const chatSendBtn = document.getElementById('chat-send-btn');
+			const recipePreviewCard = document.getElementById('recipe-preview-card');
+			const previewContent = document.getElementById('preview-content');
+			const applyRecipeBtn = document.getElementById('apply-recipe-btn');
+
+			// Auto-resize textarea
+			if (chatInput) {
+				chatInput.addEventListener('input', () => {
+					chatInput.style.height = 'auto';
+					chatInput.style.height = (chatInput.scrollHeight) + 'px';
+				});
+				
+				// Enter to submit, Shift+Enter for new line
+				chatInput.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter' && !e.shiftKey) {
+						e.preventDefault();
+						chatForm.dispatchEvent(new Event('submit'));
+					}
+				});
+			}
+
+			function getCurrentRecipeFromForm() {
+				const form = document.querySelector('form[action="/api/recipes"]');
+				if (!form) return null;
+
+				const name = form.querySelector('[name="name"]')?.value || '';
+				const description = form.querySelector('[name="description"]')?.value || '';
+				const instructions = form.querySelector('[name="instructions"]')?.value || '';
+				const base_servings = parseFloat(form.querySelector('[name="base_servings"]')?.value) || 2;
+				const default_days = parseInt(form.querySelector('[name="default_days"]')?.value) || 1;
+
+				const ingredientRows = form.querySelectorAll('[data-ingredient-row]');
+				const ingredients = Array.from(ingredientRows).map(row => {
+					const ingredientName = row.querySelector('[name="ingredient_name"]')?.value || '';
+					const quantity = parseFloat(row.querySelector('[name="ingredient_quantity"]')?.value) || 0;
+					const unit = row.querySelector('[name="ingredient_unit"]')?.value || '';
+					const category = row.querySelector('[name="ingredient_category"]')?.value || 'Other';
+					const note = row.querySelector('[name="ingredient_note"]')?.value || '';
+					return { name: ingredientName, quantity, unit, category, note };
+				}).filter(i => i.name.trim() !== '');
+
+				return {
+					name,
+					description,
+					instructions,
+					base_servings,
+					default_days,
+					ingredients
+				};
+			}
+
+			function appendMessage(role, content) {
+				if (!chatMessages) return;
+
+				const wrapper = document.createElement('div');
+				wrapper.className = 'flex gap-2.5 items-start max-w-[85%] ' + (role === 'user' ? 'self-end flex-row-reverse text-right' : '');
+
+				const bubble = document.createElement('div');
+				if (role === 'user') {
+					bubble.className = 'rounded-2xl rounded-tr-sm bg-emerald-600 px-4 py-2.5 text-sm text-white dark:bg-emerald-500 dark:text-emerald-950 text-left';
+				} else {
+					bubble.className = 'rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2.5 text-sm text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-left';
+				}
+				bubble.textContent = content;
+
+				if (role === 'assistant') {
+					const iconContainer = document.createElement('div');
+					iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400';
+					iconContainer.innerHTML = `
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+						</svg>
+					`;
+					wrapper.appendChild(iconContainer);
+				}
+
+				wrapper.appendChild(bubble);
+				chatMessages.appendChild(wrapper);
+				chatMessages.scrollTop = chatMessages.scrollHeight;
+			}
+
+			function showThinkingIndicator() {
+				if (!chatMessages) return null;
+
+				const wrapper = document.createElement('div');
+				wrapper.id = 'thinking-indicator';
+				wrapper.className = 'flex gap-2.5 items-start max-w-[85%]';
+
+				const iconContainer = document.createElement('div');
+				iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400';
+				iconContainer.innerHTML = `
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin">
+						<line x1="12" y1="2" x2="12" y2="6"></line>
+						<line x1="12" y1="18" x2="12" y2="22"></line>
+						<line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+						<line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+						<line x1="2" y1="12" x2="6" y2="12"></line>
+						<line x1="18" y1="12" x2="22" y2="12"></line>
+						<line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+						<line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+					</svg>
+				`;
+
+				const bubble = document.createElement('div');
+				bubble.className = 'rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 dark:bg-neutral-800 italic flex items-center gap-2';
+				bubble.innerHTML = `<span>${labels.aiThinking}</span>`;
+
+				wrapper.appendChild(iconContainer);
+				wrapper.appendChild(bubble);
+				chatMessages.appendChild(wrapper);
+				chatMessages.scrollTop = chatMessages.scrollHeight;
+
+				if (chatInput) chatInput.disabled = true;
+				if (chatSendBtn) chatSendBtn.disabled = true;
+
+				return wrapper;
+			}
+
+			function removeThinkingIndicator() {
+				const indicator = document.getElementById('thinking-indicator');
+				if (indicator) indicator.remove();
+				if (chatInput) {
+					chatInput.disabled = false;
+					chatInput.focus();
+				}
+				if (chatSendBtn) chatSendBtn.disabled = false;
+			}
+
+			function renderRecipePreview(recipe) {
+				if (!previewContent || !recipe) return;
+
+				let ingredientsHtml = '';
+				if (recipe.ingredients && recipe.ingredients.length > 0) {
+					ingredientsHtml = `
+						<div class="mt-3">
+							<h4 class="font-bold text-neutral-800 dark:text-neutral-200 mb-1.5">${labels.ingredients}</h4>
+							<ul class="divide-y divide-neutral-250/20 dark:divide-neutral-750 space-y-1">
+								${recipe.ingredients.map(ing => `
+									<li class="py-1 flex justify-between items-center text-xs">
+										<span class="font-medium text-neutral-850 dark:text-neutral-250">${ing.quantity} ${ing.unit} ${ing.name}</span>
+										${ing.category ? `<span class="text-[10px] text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded font-mono">${ing.category}</span>` : ''}
+									</li>
+								`).join('')}
+							</ul>
+						</div>
+					`;
+				}
+
+				const instructionsHtml = recipe.instructions ? `
+					<div class="mt-3">
+						<h4 class="font-bold text-neutral-800 dark:text-neutral-200 mb-1.5">${labels.instructions}</h4>
+						<div class="whitespace-pre-line text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950 p-2.5 rounded-xl border border-neutral-200/40 dark:border-neutral-800">${recipe.instructions}</div>
+					</div>
+				` : '';
+
+				previewContent.innerHTML = `
+					<div class="space-y-3">
+						<div>
+							<h4 class="font-bold text-neutral-850 dark:text-neutral-100 text-base leading-tight">${recipe.name || ''}</h4>
+							${recipe.description ? `<p class="text-xs text-neutral-500 dark:text-neutral-400 italic mt-0.5">${recipe.description}</p>` : ''}
+						</div>
+
+						<div class="flex gap-4 text-xs bg-neutral-50 dark:bg-neutral-950 p-2 rounded-xl border border-neutral-200/40 dark:border-neutral-800">
+							<div>
+								<span class="text-neutral-400 font-medium">${labels.baseServings}:</span>
+								<strong class="text-neutral-700 dark:text-neutral-300 ml-1">${recipe.base_servings}</strong>
+							</div>
+							<div>
+								<span class="text-neutral-400 font-medium">${labels.defaultDays}:</span>
+								<strong class="text-neutral-700 dark:text-neutral-300 ml-1">${recipe.default_days}</strong>
+							</div>
+						</div>
+
+						${ingredientsHtml}
+						${instructionsHtml}
+					</div>
+				`;
+			}
+
+			function flashElement(el) {
+				el.classList.add('ring-4', 'ring-emerald-500/30', 'border-emerald-500', 'dark:ring-emerald-400/20', 'dark:border-emerald-400', 'transition-all', 'duration-300');
+				setTimeout(() => {
+					el.classList.remove('ring-4', 'ring-emerald-500/30', 'border-emerald-500', 'dark:ring-emerald-400/20', 'dark:border-emerald-400');
+				}, 2000);
+			}
+
+			function applyRecipeToForm(newRecipe) {
+				const form = document.querySelector('form[action="/api/recipes"]');
+				if (!form || !newRecipe) return;
+
+				// 1. Update text inputs
+				const nameInput = form.querySelector('[name="name"]');
+				if (nameInput) {
+					nameInput.value = newRecipe.name || '';
+					flashElement(nameInput);
+				}
+
+				const descInput = form.querySelector('[name="description"]');
+				if (descInput) {
+					descInput.value = newRecipe.description || '';
+					flashElement(descInput);
+				}
+
+				const servingsInput = form.querySelector('[name="base_servings"]');
+				if (servingsInput) {
+					servingsInput.value = newRecipe.base_servings || '';
+					flashElement(servingsInput);
+				}
+
+				const daysInput = form.querySelector('[name="default_days"]');
+				if (daysInput) {
+					daysInput.value = newRecipe.default_days || '';
+					flashElement(daysInput);
+				}
+
+				const instInput = form.querySelector('[name="instructions"]');
+				if (instInput) {
+					instInput.value = newRecipe.instructions || '';
+					flashElement(instInput);
+				}
+
+				// 2. Re-create ingredients rows
+				const rowsContainer = form.querySelector('[data-ingredient-rows]');
+				const template = form.querySelector('[data-ingredient-template]');
+				if (rowsContainer && template) {
+					rowsContainer.innerHTML = '';
+
+					if (newRecipe.ingredients && newRecipe.ingredients.length > 0) {
+						newRecipe.ingredients.forEach(ing => {
+							const clone = template.content.cloneNode(true);
+							const row = clone.querySelector('[data-ingredient-row]');
+							
+							if (row) {
+								const nameField = row.querySelector('[name="ingredient_name"]');
+								const qtyField = row.querySelector('[name="ingredient_quantity"]');
+								const unitField = row.querySelector('[name="ingredient_unit"]');
+								const catField = row.querySelector('[name="ingredient_category"]');
+								const noteField = row.querySelector('[name="ingredient_note"]');
+
+								if (nameField) nameField.value = ing.name || '';
+								if (qtyField) qtyField.value = ing.quantity !== undefined && ing.quantity !== null ? String(ing.quantity) : '';
+								if (unitField) unitField.value = ing.unit || '';
+								if (catField) catField.value = ing.category || 'Other';
+								if (noteField) noteField.value = ing.note || '';
+
+								rowsContainer.appendChild(row);
+								flashElement(row);
+							}
+						});
+					} else {
+						const clone = template.content.cloneNode(true);
+						rowsContainer.appendChild(clone);
+					}
+				}
+			}
+
+			if (chatForm) {
+				chatForm.addEventListener('submit', async (e) => {
+					e.preventDefault();
+					const promptVal = chatInput.value.trim();
+					if (!promptVal) return;
+
+					// Clear input and adjust height back to default
+					chatInput.value = '';
+					chatInput.style.height = 'auto';
+
+					// Add user prompt to bubble and history
+					appendMessage('user', promptVal);
+					chatHistory.push({ role: 'user', content: promptVal });
+
+					const thinkingBubble = showThinkingIndicator();
+
+					try {
+						const currentRecipeState = getCurrentRecipeFromForm();
+						
+						const response = await fetch('/api/ai/chat', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								prompt: promptVal,
+								history: chatHistory,
+								recipe: currentRecipeState
+							})
+						});
+
+						if (!response.ok) {
+							const errBody = await response.json().catch(() => ({}));
+							throw new Error(errBody.error || `HTTP error ${response.status}`);
+						}
+
+						const result = await response.json();
+						removeThinkingIndicator();
+
+						if (result.message) {
+							appendMessage('assistant', result.message);
+							chatHistory.push({ role: 'assistant', content: result.message });
+						}
+
+						if (result.recipe) {
+							currentProposedRecipe = result.recipe;
+							renderRecipePreview(currentProposedRecipe);
+							
+							// Reset the Apply button state in case it was applied before
+							if (applyRecipeBtn) {
+								applyRecipeBtn.disabled = false;
+								applyRecipeBtn.classList.remove('bg-neutral-100', 'text-neutral-400', 'cursor-not-allowed', 'from-emerald-600', 'to-teal-500');
+								applyRecipeBtn.classList.add('bg-gradient-to-r', 'from-emerald-600', 'to-teal-500');
+								const textSpan = applyRecipeBtn.querySelector('span');
+								if (textSpan) textSpan.textContent = labels.aiApplyToForm;
+							}
+
+							// Slide in / show preview card
+							if (recipePreviewCard) {
+								recipePreviewCard.classList.remove('hidden');
+								recipePreviewCard.classList.add('flex');
+							}
+							if (chatLayout) {
+								chatLayout.classList.add('lg:grid-cols-2');
+							}
+						}
+					} catch (err) {
+						removeThinkingIndicator();
+						appendMessage('assistant', (locale === 'de' ? 'Entschuldigung, es gab einen Fehler: ' : 'Sorry, an error occurred: ') + err.message);
+					}
+				});
+			}
+
+			if (applyRecipeBtn) {
+				applyRecipeBtn.addEventListener('click', () => {
+					if (!currentProposedRecipe) return;
+
+					// Apply to form inputs
+					applyRecipeToForm(currentProposedRecipe);
+
+					// Premium UI: turn apply button into success checkmark for feedback, then hide preview panel
+					applyRecipeBtn.disabled = true;
+					applyRecipeBtn.classList.remove('bg-gradient-to-r', 'from-emerald-600', 'to-teal-500');
+					applyRecipeBtn.classList.add('bg-neutral-100', 'text-neutral-400', 'dark:bg-neutral-800', 'dark:text-neutral-500', 'cursor-not-allowed');
+					const textSpan = applyRecipeBtn.querySelector('span');
+					if (textSpan) {
+						textSpan.textContent = labels.applySuccess;
+					}
+
+					// Let the user enjoy the visual feedback for a brief moment, then close the preview panel
+					setTimeout(() => {
+						if (recipePreviewCard) {
+							recipePreviewCard.classList.add('hidden');
+							recipePreviewCard.classList.remove('flex');
+						}
+						if (chatLayout) {
+							chatLayout.classList.remove('lg:grid-cols-2');
+						}
+						currentProposedRecipe = null;
+					}, 1200);
+				});
+			}
+		</script>
 	) : (
+		<Panel>
+			<div class="mb-3 flex items-center gap-2">
+				<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+				<h2 class="m-0 text-lg font-semibold tracking-tight">{t('generateWithAi')}</h2>
+			</div>
+
+			{error && (
+				<p class="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+					<strong class="block">{t('aiErrorTitle')}</strong>
+					{error}
+				</p>
+			)}
+
+			<form method="post" action="/api/ai/recipe" class="grid gap-3">
+				<input type="hidden" name="action" value="generate" />
+				<Textarea name="prompt" rows="2" required placeholder={t('aiPromptPlaceholder')} />
+				<div>
+					<Button>
+						<Sparkles size={16} strokeWidth={2} />
+						{t('aiGenerateButton')}
+					</Button>
+				</div>
+			</form>
+		</Panel>
+	)
+) : (
+	<Panel>
+		<div class="mb-3 flex items-center gap-2">
+			<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+			<h2 class="m-0 text-lg font-semibold tracking-tight">{isEdit ? t('editWithAi') : t('generateWithAi')}</h2>
+		</div>
 		<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
 			{t('aiSettingsHint')}
 			<a href="/settings" class="ml-1 font-medium text-emerald-700 underline dark:text-emerald-400">{t('settingsNav')}</a>
 		</p>
-	)}
-</Panel>
+	</Panel>
+)}

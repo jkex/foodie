@@ -9,6 +9,7 @@ import Input from '../../components/ui/Input.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getDb, listRecipes, type Recipe } from '../../lib/db';
 import { formatLastCooked, useTranslations } from '../../lib/i18n';
+import { translateRecipe } from '../../lib/preferences';
 
 let recipes: Recipe[] = [];
 let databaseError = '';
@@ -48,7 +49,8 @@ const visibleRecipes = query
 
 		{visibleRecipes.length > 0 ? (
 			<div class="grid gap-3">
-				{visibleRecipes.map((recipe) => {
+				{visibleRecipes.map((r) => {
+					const recipe = translateRecipe(locale, r);
 					const lastCooked = formatLastCooked(locale, recipe.last_cooked_at);
 					return (
 						<a

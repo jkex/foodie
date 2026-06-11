@@ -7,7 +7,7 @@ import AppLayout from '../layouts/AppLayout.astro';
 import { getDb, shoppingListForPlan, type MealPlan, type ShoppingListItem } from '../lib/db';
 import { formatQuantity, useTranslations } from '../lib/i18n';
 import { ensureWeeklyPlan } from '../lib/plan';
-import { translateCategory } from '../lib/preferences';
+import { translateCategory, translateIngredient } from '../lib/preferences';
 
 let mealPlan: MealPlan | null = null;
 let shoppingList: ShoppingListItem[] = [];
@@ -58,7 +58,7 @@ for (const item of shoppingList) {
 										class="h-5 w-5 shrink-0 rounded border-neutral-300 accent-emerald-600 dark:accent-emerald-500"
 									/>
 									<span class="text-sm">
-										<strong class="font-semibold">{formatQuantity(item.total_quantity)} {item.unit}</strong> {item.name}
+										<strong class="font-semibold">{formatQuantity(item.total_quantity)} {item.unit}</strong> {translateIngredient(locale, item.name)}
 										{item.notes && <small class="block text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</small>}
 									</span>
 								</label>
