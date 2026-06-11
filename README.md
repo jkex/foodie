@@ -9,6 +9,7 @@ The product reference lives in [docs/recipe-rotation-app.md](./docs/recipe-rotat
 - Astro
 - TypeScript
 - Tailwind CSS v4
+- Lucide icons through `@lucide/astro`
 - Cloudflare Workers via `@astrojs/cloudflare`
 - Cloudflare D1
 - Drizzle ORM
@@ -196,3 +197,15 @@ Initial app capabilities:
 - Aggregate duplicate shopping-list ingredients by name and unit.
 
 Future ideas such as Google Keep integration, pantry tracking, recipe imports, and nutrition metadata are tracked in [docs/future-ideas.md](./docs/future-ideas.md).
+
+## Routes
+
+Current app routes:
+
+```text
+/             redirects to /plan
+/plan         meal planning
+/recipes      recipe management
+/shopping     current shopping list
+/settings     language and theme settings
+```

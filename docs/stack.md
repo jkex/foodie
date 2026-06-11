@@ -107,10 +107,13 @@ pnpm db:migrations:production
 ## Styling
 
 - Styling system: Tailwind CSS v4
+- Icon library: `@lucide/astro`
 - Tailwind entrypoint: `src/styles/global.css`
 - Tailwind is wired through `@tailwindcss/vite` in `astro.config.mjs`.
 
 Use Tailwind utility classes for app UI. Do not add shadcn/ui unless the app gains React islands and needs richer interactive components.
+
+Use Lucide icons for navigation and app controls. shadcn/ui uses Lucide by default; in this Astro app the framework-appropriate package is `@lucide/astro`, not `lucide-react`.
 
 ## UI Approach
 
@@ -130,7 +133,15 @@ Mobile-first shell rules:
 - Respect safe-area insets with `env(safe-area-inset-*)`.
 - Keep touch targets at least about 44px tall.
 - Optimize the phone workflow first; desktop can use the same sections in wider grids.
-- The current page uses section anchors as an intermediate step. When the app is split into real routes, keep `/plan`, `/recipes`, `/shopping`, and `/settings` as the primary navigation model.
+- The app uses real routes for primary navigation:
+
+```text
+/             redirects to /plan
+/plan         meal planning
+/recipes      recipe management
+/shopping     current shopping list
+/settings     language and theme settings
+```
 
 Theme and language preferences use a small no-framework client script in `src/pages/index.astro`:
 

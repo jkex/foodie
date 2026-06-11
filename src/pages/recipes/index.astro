@@ -1,0 +1,101 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import { getDb, listRecipeIngredients, listRecipes, type Recipe, type RecipeIngredient } from '../../lib/db';
+import { detectLocale, translations, type TranslationKey } from '../../lib/preferences';
+
+let recipes: Recipe[] = [];
+let ingredientsByRecipe = new Map<number, RecipeIngredient[]>();
+let databaseError = '';
+
+try {
+	const db = getDb();
+	recipes = await listRecipes(db);
+	ingredientsByRecipe = new Map(await Promise.all(recipes.map(async (recipe) => [recipe.id, await listRecipeIngredients(db, recipe.id)])));
+} catch (error) {
+	databaseError = error instanceof Error ? error.message : 'Unknown database error';
+}
+
+const locale = detectLocale(Astro.request.headers.get('accept-language'));
+const t = (key: TranslationKey) => translations[locale][key];
+const panelClass = 'rounded-xl border border-neutral-200 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 sm:p-5';
+const inputClass = 'h-10 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
+const textareaClass = 'w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
+const labelClass = 'grid gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200';
+const buttonClass = 'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-neutral-800 disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200';
+const secondaryButtonClass = 'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-950 shadow-xs transition hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:bg-neutral-900';
+const mutedTextClass = 'text-sm text-neutral-500 dark:text-neutral-400';
+const rowClass = 'rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-900/50';
+---
+
+<AppLayout active="recipes">
+	<section class="grid gap-4">
+		<div>
+			<h1 data-i18n="recipes" class="m-0 text-2xl font-semibold tracking-tight sm:text-3xl">{t('recipes')}</h1>
+		</div>
+
+		{databaseError && <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">{databaseError}</p>}
+
+		<section class={panelClass}>
+			<div class="mb-4 flex items-center justify-between gap-3">
+				<h2 data-i18n="addRecipe" class="m-0 text-lg font-semibold tracking-tight">{t('addRecipe')}</h2>
+				<span class="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">{recipes.length}</span>
+			</div>
+			<form method="post" action="/api/recipes" class="grid gap-4 md:grid-cols-3">
+				<label class={labelClass}>
+					<span data-i18n="name">{t('name')}</span>
+					<input data-i18n-placeholder="recipeNamePlaceholder" class={inputClass} name="name" required placeholder={t('recipeNamePlaceholder')} />
+				</label>
+				<label class={labelClass}>
+					<span data-i18n="baseServings">{t('baseServings')}</span>
+					<input class={inputClass} type="number" name="base_servings" value="2" min="1" step="0.5" required />
+				</label>
+				<label class={labelClass}>
+					<span data-i18n="defaultDays">{t('defaultDays')}</span>
+					<input class={inputClass} type="number" name="default_days" value="1" min="1" max="7" required />
+				</label>
+				<label class={`${labelClass} md:col-span-3`}>
+					<span data-i18n="description">{t('description')}</span>
+					<input data-i18n-placeholder="descriptionPlaceholder" class={inputClass} name="description" placeholder={t('descriptionPlaceholder')} />
+				</label>
+				<label class={`${labelClass} md:col-span-3`}>
+					<span data-i18n="instructions">{t('instructions')}</span>
+					<textarea data-i18n-placeholder="instructionsPlaceholder" class={textareaClass} name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}></textarea>
+				</label>
+				<label class={`${labelClass} md:col-span-3`}>
+					<span data-i18n="ingredients">{t('ingredients')}</span>
+					<textarea data-i18n-placeholder="ingredientsPlaceholder" class={textareaClass} name="ingredients" rows="6" placeholder={t('ingredientsPlaceholder')}></textarea>
+				</label>
+				<button data-i18n="saveRecipe" class={buttonClass} type="submit" disabled={Boolean(databaseError)}>{t('saveRecipe')}</button>
+			</form>
+		</section>
+
+		<section class={panelClass}>
+			<h2 data-i18n="recipes" class="mt-0 text-lg font-semibold tracking-tight">{t('recipes')}</h2>
+			{recipes.length > 0 ? (
+				<div class="grid gap-3">
+					{recipes.map((recipe) => (
+						<article class={rowClass}>
+							<div>
+								<h3 class="mt-0 text-base font-medium">{recipe.name}</h3>
+								<p class={`${mutedTextClass} mt-0`}>{recipe.description || t('noDescription')}</p>
+								<small class={mutedTextClass}>{recipe.base_servings} <span data-i18n="baseServingsUsually">{t('baseServingsUsually')}</span> {recipe.default_days} <span data-i18n={recipe.default_days === 1 ? 'daySingular' : 'dayPlural'}>{recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}</span></small>
+							</div>
+							<ul class="my-3 grid gap-1 pl-5 text-sm text-neutral-700 dark:text-neutral-300">
+								{(ingredientsByRecipe.get(recipe.id) ?? []).map((ingredient) => (
+									<li>{ingredient.quantity} {ingredient.unit} {ingredient.name}</li>
+								))}
+							</ul>
+							<form method="post" action="/api/recipes">
+								<input type="hidden" name="action" value="delete" />
+								<input type="hidden" name="id" value={recipe.id} />
+								<button data-i18n="delete" type="submit" class={secondaryButtonClass}>{t('delete')}</button>
+							</form>
+						</article>
+					))}
+				</div>
+			) : (
+				<p data-i18n="noRecipes" class="mt-0 text-sm text-neutral-500 dark:text-neutral-400">{t('noRecipes')}</p>
+			)}
+		</section>
+	</section>
+</AppLayout>

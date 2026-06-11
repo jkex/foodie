@@ -353,16 +353,22 @@ Primary mobile navigation:
 - Shopping
 - Settings
 
-The current single-page implementation may use anchored sections, but the intended route structure is:
+Implemented primary route structure:
 
 ```text
+/             redirects to /plan
 /plan
 /recipes
+/shopping
+/settings
+```
+
+Future route structure:
+
+```text
 /recipes/new
 /recipes/[id]
-/shopping
 /history
-/settings
 ```
 
 `/history` is secondary and should not crowd the first mobile bottom nav unless usage proves it belongs there.
