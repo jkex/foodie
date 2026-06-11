@@ -1,9 +1,27 @@
-name = "foodie"
+name = "foodie-staging"
 compatibility_date = "2026-06-11"
 pages_build_output_dir = "./dist"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "foodie"
-database_id = "replace-with-cloudflare-d1-database-id"
+database_id = "13da1ad9-7694-485a-88f7-91fc8dea04c1"
+migrations_dir = "migrations"
+
+[env.staging]
+name = "foodie-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "foodie"
+database_id = "13da1ad9-7694-485a-88f7-91fc8dea04c1"
+migrations_dir = "migrations"
+
+[env.production]
+name = "foodie"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "foodie-production"
+database_id = "7797a8cd-fb9c-4623-8a8a-92ad43d5a093"
 migrations_dir = "migrations"

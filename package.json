@@ -2,6 +2,7 @@
   "name": "foodie",
   "type": "module",
   "version": "0.0.1",
+  "packageManager": "pnpm@11.5.3",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -12,7 +13,11 @@
     "astro": "astro",
     "db:generate": "drizzle-kit generate",
     "db:migrations:local": "wrangler d1 migrations apply foodie --local",
-    "db:migrations:remote": "wrangler d1 migrations apply foodie --remote"
+    "db:migrations:staging": "wrangler d1 migrations apply DB --env staging --remote",
+    "db:migrations:production": "wrangler d1 migrations apply DB --env production --remote",
+    "db:migrations:remote": "pnpm db:migrations:staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",

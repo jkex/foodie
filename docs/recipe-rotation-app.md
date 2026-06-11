@@ -376,6 +376,8 @@ Expected implementation files:
 
 See [Future Ideas](./future-ideas.md) for planned enhancements that are not part of the initial build.
 
+See [Stack](./stack.md) for current framework, database, package manager, styling, and deployment decisions.
+
 ## Acceptance Criteria
 
 The first implementation should satisfy:

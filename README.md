@@ -1,26 +1,26 @@
 # Foodie
 
-Recipe rotation and shopping-list app built with Astro, TypeScript, Cloudflare Pages, and Cloudflare D1.
+Recipe rotation and shopping-list app built with Astro, TypeScript, Cloudflare Workers, Cloudflare D1, Drizzle, Tailwind, and pnpm.
 
 ## Development
 
 Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 Run the Astro dev server:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The app expects a D1 binding named `DB` for database-backed pages and API routes. For Cloudflare-compatible local testing, apply migrations locally and run the dev server:
 
 ```bash
-npm run db:migrations:local
-npm run dev
+pnpm db:migrations:local
+pnpm dev
 ```
 
 ## Database
@@ -34,16 +34,41 @@ The app uses Cloudflare D1 for storage, Drizzle ORM for typed schema/query manag
 Generate migrations after schema changes:
 
 ```bash
-npm run db:generate
+pnpm db:generate
 ```
 
-For production, create a Cloudflare D1 database, replace `database_id` in [wrangler.toml](./wrangler.toml), then apply remote migrations:
+Apply remote migrations to staging:
 
 ```bash
-npm run db:migrations:remote
+pnpm db:migrations:staging
 ```
+
+Apply remote migrations to production:
+
+```bash
+pnpm db:migrations:production
+```
+
+## Deployment
+
+Cloudflare Workers Builds should use `prod` as the production branch.
+
+Use these commands in Cloudflare:
+
+```text
+Build command: pnpm build
+Deploy command: pnpm deploy:production
+Non-production branch deploy command: pnpm deploy:staging
+Path: /
+```
+
+With that setup:
+
+- `prod` deploys to the production Worker and production D1 database.
+- `main` deploys to the staging Worker and staging D1 database.
 
 ## Product Reference
 
 - [Recipe Rotation App](./docs/recipe-rotation-app.md)
+- [Stack](./docs/stack.md)
 - [Future Ideas](./docs/future-ideas.md)

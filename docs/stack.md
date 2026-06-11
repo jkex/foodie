@@ -1,0 +1,102 @@
+# Stack
+
+This document records the technical choices for the Foodie app so future agents keep the project consistent.
+
+## Runtime And Deployment
+
+- App framework: Astro
+- Language: TypeScript
+- Deployment target: Cloudflare Workers via the Astro Cloudflare adapter
+- Deploy tool: Wrangler
+- Package manager: pnpm
+
+Cloudflare Workers Builds should use `prod` as the production branch.
+
+Cloudflare build settings should use:
+
+```text
+Build command: pnpm build
+Deploy command: pnpm deploy:production
+Non-production branch deploy command: pnpm deploy:staging
+Path: /
+```
+
+## Database
+
+- Database: Cloudflare D1
+- Binding name: `DB`
+- Staging database name: `foodie`
+- Production database name: `foodie-production`
+- Schema source of truth: Drizzle schema in `src/db/schema.ts`
+- Migration application: Wrangler D1 migrations from `migrations/`
+
+The app code imports the D1 binding through `cloudflare:workers` and wraps it with Drizzle's D1 driver.
+
+Important files:
+
+- `wrangler.toml`
+- `drizzle.config.ts`
+- `src/db/schema.ts`
+- `src/lib/db.ts`
+- `migrations/0001_initial.sql`
+
+## Database Commands
+
+Generate a migration after changing the Drizzle schema:
+
+```bash
+pnpm db:generate
+```
+
+Apply migrations to the local D1 database:
+
+```bash
+pnpm db:migrations:local
+```
+
+Apply migrations to the remote D1 database:
+
+```bash
+pnpm db:migrations:staging
+pnpm db:migrations:production
+```
+
+## Styling
+
+- Styling system: Tailwind CSS v4
+- Tailwind entrypoint: `src/styles/global.css`
+- Tailwind is wired through `@tailwindcss/vite` in `astro.config.mjs`.
+
+Use Tailwind utility classes for app UI. Do not add shadcn/ui unless the app gains React islands and needs richer interactive components.
+
+## UI Approach
+
+The first version is server-rendered Astro with regular HTML forms and API routes.
+
+Prefer this pattern until there is a clear need for client-side state, such as:
+
+- Drag-and-drop meal planning
+- Rich dialogs
+- Calendar widgets
+- Command menus
+- Offline shopping-list state
+
+## Package Manager Policy
+
+Use pnpm for local development, CI, and Cloudflare build commands.
+
+Do not add `package-lock.json` or `bun.lockb`.
+
+Use:
+
+```bash
+pnpm install
+pnpm dev
+pnpm build
+```
+
+## Notes
+
+- Keep the D1 binding name as `DB`; app code depends on it.
+- Keep staging and production D1 database IDs separate in `wrangler.toml`.
+- Do not run D1 migrations automatically from branch deploys unless the workflow explicitly gates production migrations.
