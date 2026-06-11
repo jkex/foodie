@@ -25,6 +25,7 @@
     "@astrojs/cloudflare": "^13.7.0",
     "@lucide/astro": "^1.17.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@workos-inc/node": "^10.2.0",
     "astro": "^6.4.6",
     "drizzle-orm": "^0.45.2",
     "tailwindcss": "^4.3.0"

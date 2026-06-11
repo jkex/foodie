@@ -10,6 +10,7 @@ The product reference lives in [docs/recipe-rotation-app.md](./docs/recipe-rotat
 - TypeScript
 - Tailwind CSS v4
 - Lucide icons through `@lucide/astro`
+- WorkOS AuthKit
 - Cloudflare Workers via `@astrojs/cloudflare`
 - Cloudflare D1
 - Drizzle ORM
@@ -59,6 +60,45 @@ Configured resources:
 - Production D1 database: `foodie-production`
 
 The database IDs are configured in [wrangler.toml](./wrangler.toml).
+
+Required Worker secrets:
+
+```text
+WORKOS_API_KEY
+WORKOS_CLIENT_ID
+WORKOS_COOKIE_PASSWORD
+```
+
+Generate `WORKOS_COOKIE_PASSWORD` with at least 32 characters, for example:
+
+```bash
+openssl rand -base64 32
+```
+
+Set secrets per environment:
+
+```bash
+pnpm wrangler secret put WORKOS_API_KEY --env staging
+pnpm wrangler secret put WORKOS_CLIENT_ID --env staging
+pnpm wrangler secret put WORKOS_COOKIE_PASSWORD --env staging
+pnpm wrangler secret put WORKOS_API_KEY --env production
+pnpm wrangler secret put WORKOS_CLIENT_ID --env production
+pnpm wrangler secret put WORKOS_COOKIE_PASSWORD --env production
+```
+
+In the WorkOS Dashboard, enable Google and Apple as AuthKit/social login providers. Configure redirect URIs for each deployed environment:
+
+```text
+http://localhost:4321/auth/callback
+https://<staging-worker-domain>/auth/callback
+https://<production-domain>/auth/callback
+```
+
+Configure the AuthKit sign-in endpoint as:
+
+```text
+/login
+```
 
 ## Local Development
 
@@ -204,6 +244,10 @@ Current app routes:
 
 ```text
 /             redirects to /plan
+/login        WorkOS AuthKit login page
+/auth/login   starts WorkOS AuthKit OAuth flow
+/auth/callback handles WorkOS callback and sets the sealed session cookie
+/logout       clears the session and redirects through WorkOS logout
 /plan         meal planning
 /recipes      recipe management
 /shopping     current shopping list

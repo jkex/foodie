@@ -108,12 +108,63 @@ pnpm db:migrations:production
 
 - Styling system: Tailwind CSS v4
 - Icon library: `@lucide/astro`
+- Authentication: WorkOS AuthKit via `@workos-inc/node`
 - Tailwind entrypoint: `src/styles/global.css`
 - Tailwind is wired through `@tailwindcss/vite` in `astro.config.mjs`.
 
 Use Tailwind utility classes for app UI. Do not add shadcn/ui unless the app gains React islands and needs richer interactive components.
 
 Use Lucide icons for navigation and app controls. shadcn/ui uses Lucide by default; in this Astro app the framework-appropriate package is `@lucide/astro`, not `lucide-react`.
+
+## Authentication
+
+Use WorkOS AuthKit for authentication.
+
+Provider setup:
+
+- Enable Google login in the WorkOS Dashboard.
+- Enable Apple login in the WorkOS Dashboard.
+- The app starts provider-specific AuthKit flows through `/auth/login?provider=GoogleOAuth` and `/auth/login?provider=AppleOAuth`.
+- WorkOS owns provider credentials and Apple-specific setup; do not store Google or Apple OAuth client secrets in this repo.
+
+Required Worker secrets:
+
+```text
+WORKOS_API_KEY
+WORKOS_CLIENT_ID
+WORKOS_COOKIE_PASSWORD
+```
+
+`WORKOS_COOKIE_PASSWORD` must be at least 32 characters. Generate it with:
+
+```bash
+openssl rand -base64 32
+```
+
+Session model:
+
+- WorkOS returns a sealed session from `authenticateWithCode`.
+- The sealed session is stored in an HttpOnly `foodie_session` cookie.
+- Middleware validates the sealed session with `authenticateWithSessionCookie`.
+- App pages and `/api/*` routes require a valid session when WorkOS is configured.
+- If WorkOS secrets are missing, local development remains usable and `/login` shows setup instructions.
+
+Auth routes:
+
+```text
+/login
+/auth/login
+/auth/callback
+/logout
+```
+
+Dashboard redirect URIs must include:
+
+```text
+http://localhost:4321/auth/callback
+https://<staging-worker-domain>/auth/callback
+https://<production-domain>/auth/callback
+```
 
 ## UI Approach
 

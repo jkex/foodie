@@ -84,6 +84,7 @@ Use:
 - Drizzle ORM
 - Tailwind CSS
 - pnpm
+- WorkOS AuthKit
 
 Use Cloudflare D1 instead of Worker KV because the app needs relational data and aggregation across:
 
@@ -345,6 +346,7 @@ Capabilities:
 - Bottom navigation for primary mobile workflows.
 - System/light/dark theme support.
 - Browser language detection with English and German UI strings.
+- WorkOS AuthKit login with Google and Apple.
 
 Primary mobile navigation:
 

@@ -6,6 +6,7 @@ const locale = detectLocale(Astro.request.headers.get('accept-language'));
 const t = (key: TranslationKey) => translations[locale][key];
 const panelClass = 'rounded-xl border border-neutral-200 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 sm:p-5';
 const inputClass = 'h-10 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
+const secondaryButtonClass = 'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-950 shadow-xs transition hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:bg-neutral-900';
 ---
 
 <AppLayout active="settings">
@@ -27,6 +28,9 @@ const inputClass = 'h-10 w-full rounded-md border border-neutral-200 bg-white px
 					<option value="dark" data-i18n="dark">{t('dark')}</option>
 				</select>
 			</label>
+			<form method="post" action="/logout">
+				<button data-i18n="signOut" class={secondaryButtonClass} type="submit">{t('signOut')}</button>
+			</form>
 		</section>
 	</section>
 </AppLayout>

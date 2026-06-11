@@ -51,6 +51,13 @@ export const translations = {
 		recipesNav: 'Recipes',
 		shoppingNav: 'Shopping',
 		settingsNav: 'Settings',
+		signInTitle: 'Sign in',
+		signInHelp: 'Sign in with Google or Apple to manage your recipes.',
+		continueWithGoogle: 'Continue with Google',
+		continueWithApple: 'Continue with Apple',
+		workosMissing: 'WorkOS is not configured.',
+		workosMissingHelp: 'Set WORKOS_API_KEY, WORKOS_CLIENT_ID, and WORKOS_COOKIE_PASSWORD as Cloudflare Worker secrets.',
+		signOut: 'Sign out',
 	},
 	de: {
 		appTitle: 'Rezeptrotation und Einkaufsliste',
@@ -101,6 +108,13 @@ export const translations = {
 		recipesNav: 'Rezepte',
 		shoppingNav: 'Einkauf',
 		settingsNav: 'Einstellungen',
+		signInTitle: 'Anmelden',
+		signInHelp: 'Melde dich mit Google oder Apple an, um deine Rezepte zu verwalten.',
+		continueWithGoogle: 'Mit Google fortfahren',
+		continueWithApple: 'Mit Apple fortfahren',
+		workosMissing: 'WorkOS ist nicht konfiguriert.',
+		workosMissingHelp: 'Setze WORKOS_API_KEY, WORKOS_CLIENT_ID und WORKOS_COOKIE_PASSWORD als Cloudflare Worker Secrets.',
+		signOut: 'Abmelden',
 	},
 } as const;
 
