@@ -1,7 +1,17 @@
 ---
+import { ChevronDown, SlidersHorizontal } from '@lucide/astro';
+import PageHeader from '../components/PageHeader.astro';
+import Alert from '../components/ui/Alert.astro';
+import Badge from '../components/ui/Badge.astro';
+import Button from '../components/ui/Button.astro';
+import EmptyState from '../components/ui/EmptyState.astro';
+import Field from '../components/ui/Field.astro';
+import Input from '../components/ui/Input.astro';
+import Panel from '../components/ui/Panel.astro';
 import AppLayout from '../layouts/AppLayout.astro';
-import { getDb, latestMealPlan, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../lib/db';
-import { detectLocale, translations, type TranslationKey } from '../lib/preferences';
+import { getDb, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../lib/db';
+import { formatPlanDay, useTranslations } from '../lib/i18n';
+import { ensureWeeklyPlan } from '../lib/plan';
 
 let recipes: Recipe[] = [];
 let mealPlan: MealPlan | null = null;
@@ -10,97 +20,103 @@ let databaseError = '';
 
 try {
 	const db = getDb();
-	recipes = await listRecipes(db);
-	mealPlan = await latestMealPlan(db);
+	recipes = await listRecipes(db, Astro.locals.userId);
+	mealPlan = await ensureWeeklyPlan(db, Astro.locals.userId);
 	if (mealPlan) {
-		mealPlanItems = await listMealPlanItems(db, mealPlan.id);
+		mealPlanItems = await listMealPlanItems(db, Astro.locals.userId, mealPlan.id);
 	}
 } catch (error) {
 	databaseError = error instanceof Error ? error.message : 'Unknown database error';
 }
 
-const locale = detectLocale(Astro.request.headers.get('accept-language'));
-const t = (key: TranslationKey) => translations[locale][key];
+const { locale, t } = useTranslations(Astro);
 const today = new Date().toISOString().slice(0, 10);
-
-const panelClass = 'rounded-xl border border-neutral-200 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 sm:p-5';
-const inputClass = 'h-10 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
-const labelClass = 'grid gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200';
-const buttonClass = 'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-neutral-800 disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200';
-const mutedTextClass = 'text-sm text-neutral-500 dark:text-neutral-400';
-const rowClass = 'rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-900/50';
+const hasPlan = Boolean(mealPlan);
 ---
 
-<AppLayout active="plan">
+<AppLayout active="plan" title={t('planNav')}>
 	<section class="grid gap-4">
-		<div>
-			<p class="m-0 text-sm font-medium text-neutral-500 dark:text-neutral-400">Foodie</p>
-			<h1 data-i18n="appTitle" class="m-0 text-2xl font-semibold tracking-tight sm:text-3xl">{t('appTitle')}</h1>
-		</div>
+		<PageHeader title={t('planNav')} subtitle={t('appTitle')} />
 
 		{databaseError && (
-			<section class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-				<h2 data-i18n="databaseSetupNeeded" class="mt-0 text-base font-semibold">{t('databaseSetupNeeded')}</h2>
-				<p class="mt-0">{databaseError}</p>
-				<p><span data-i18n="databaseSetupHelp">{t('databaseSetupHelp')}</span> <code>DB</code> <span data-i18n="beforeUsingApp">{t('beforeUsingApp')}</span></p>
-			</section>
+			<Alert title={t('databaseSetupNeeded')}>
+				<p class="mt-0 mb-1">{databaseError}</p>
+				<p class="m-0">{t('databaseSetupHelp')} <code>DB</code> {t('beforeUsingApp')}</p>
+			</Alert>
 		)}
 
-		<div class="grid items-start gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-			<section class={panelClass}>
+		{mealPlan ? (
+			<Panel>
 				<div class="mb-4 flex items-center justify-between gap-3">
-					<h2 data-i18n="generatePlan" class="m-0 text-lg font-semibold tracking-tight">{t('generatePlan')}</h2>
-					<span class="rounded-full border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">7d</span>
+					<h2 class="m-0 text-lg font-semibold tracking-tight">{t('latestPlan')}</h2>
+					<Badge tone={mealPlan.status === 'draft' ? 'amber' : 'accent'}>
+						{mealPlan.status === 'draft' ? t('draftBadge') : t('acceptedBadge')}
+					</Badge>
 				</div>
-				<form method="post" action="/api/plans" class="grid gap-4">
-					<label class={labelClass}>
-						<span data-i18n="startDate">{t('startDate')}</span>
-						<input class={inputClass} type="date" name="start_date" value={today} required />
-					</label>
-					<label class={labelClass}>
-						<span data-i18n="cookedFoodDays">{t('cookedFoodDays')}</span>
-						<input class={inputClass} type="number" name="planned_day_count" value="7" min="1" max="14" required />
-					</label>
-					<label class={labelClass}>
-						<span data-i18n="people">{t('people')}</span>
-						<input class={inputClass} type="number" name="people_count" value="2" min="1" max="20" required />
-					</label>
-					<button data-i18n="generateDraft" class={buttonClass} type="submit" disabled={Boolean(databaseError) || recipes.length === 0}>{t('generateDraft')}</button>
-				</form>
-			</section>
-
-			<section class={panelClass}>
-				<div class="mb-4 flex items-center justify-between gap-3">
-					<h2 data-i18n="latestPlan" class="m-0 text-lg font-semibold tracking-tight">{t('latestPlan')}</h2>
-					{mealPlan && <span class="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">{mealPlan.status}</span>}
-				</div>
-				{mealPlan ? (
-					<>
-						<p class={`${mutedTextClass} mt-0`}>
-							<strong>{mealPlan.planned_day_count}</strong> <span data-i18n="cookedFoodDaysFor">{t('cookedFoodDaysFor')}</span> <strong>{mealPlan.people_count}</strong> <span data-i18n="peopleStarting">{t('peopleStarting')}</span> <strong>{mealPlan.start_date}</strong>.
-						</p>
-						<ol class="grid list-none gap-3 p-0">
-							{mealPlanItems.map((item) => (
-								<li class={`${rowClass} grid grid-cols-[auto_1fr] gap-3`}>
-									<span class="grid h-9 w-9 place-items-center rounded-md bg-white text-sm font-semibold shadow-xs dark:bg-neutral-950"><span data-i18n="day" class="sr-only">{t('day')}</span>{item.start_day_index + 1}</span>
-									<span>
-										<strong class="block text-sm font-medium">{item.recipe_name}</strong>
-										<small class={mutedTextClass}>{item.day_count} <span data-i18n={item.day_count === 1 ? 'daySingular' : 'dayPlural'}>{item.day_count === 1 ? t('daySingular') : t('dayPlural')}</span>, {item.serving_multiplier.toFixed(2)}x <span data-i18n="ingredientsMultiplier">{t('ingredientsMultiplier')}</span></small>
-									</span>
-								</li>
-							))}
-						</ol>
-						{mealPlan.status === 'draft' && (
-							<form method="post" action="/api/plans/commit">
-								<input type="hidden" name="meal_plan_id" value={mealPlan.id} />
-								<button data-i18n="acceptPlan" class={buttonClass} type="submit">{t('acceptPlan')}</button>
-							</form>
-						)}
-					</>
-				) : (
-					<p data-i18n="noPlan" class={`${mutedTextClass} mt-0`}>{t('noPlan')}</p>
+				<p class="mt-0 text-sm text-neutral-500 dark:text-neutral-400">
+					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.planned_day_count}</strong> {t('cookedFoodDaysFor')}{' '}
+					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.people_count}</strong> {t('peopleStarting')}{' '}
+					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.start_date}</strong>.
+				</p>
+				<ol class="grid list-none gap-2.5 p-0">
+					{mealPlanItems.map((item) => (
+						<li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
+							<span class="grid min-w-16 place-items-center rounded-lg bg-white px-2 py-1.5 text-center text-xs font-semibold text-emerald-700 shadow-xs dark:bg-neutral-900 dark:text-emerald-400">
+								{formatPlanDay(locale, mealPlan!.start_date, item.start_day_index)}
+							</span>
+							<span>
+								<strong class="block text-sm font-semibold">{item.recipe_name}</strong>
+								<small class="text-xs text-neutral-500 dark:text-neutral-400">
+									{item.day_count} {item.day_count === 1 ? t('daySingular') : t('dayPlural')}, {item.serving_multiplier.toFixed(2)}x {t('ingredientsMultiplier')}
+								</small>
+							</span>
+						</li>
+					))}
+				</ol>
+				{mealPlan.status === 'draft' && (
+					<div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+						<form method="post" action="/api/plans/commit" class="contents">
+							<input type="hidden" name="meal_plan_id" value={mealPlan.id} />
+							<Button>{t('acceptPlan')}</Button>
+						</form>
+						<Button variant="secondary" href="/plan/edit">
+							<SlidersHorizontal size={16} strokeWidth={2} />
+							{t('adjustPlan')}
+						</Button>
+					</div>
 				)}
-			</section>
-		</div>
+			</Panel>
+		) : (
+			!databaseError && (
+				<EmptyState title={t('noPlan')} description={recipes.length === 0 ? t('addRecipesFirst') : t('planEmptyHelp')}>
+					{recipes.length === 0 && (
+						<Button variant="secondary" href="/recipes/new">{t('newRecipe')}</Button>
+					)}
+				</EmptyState>
+			)
+		)}
+
+		<Panel>
+			<details open={!hasPlan}>
+				<summary class="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+					<h2 class="m-0 text-lg font-semibold tracking-tight">{hasPlan ? t('generateNewPlan') : t('generatePlan')}</h2>
+					<ChevronDown size={18} strokeWidth={2} class="text-neutral-400 transition" />
+				</summary>
+				<form method="post" action="/api/plans" class="mt-4 grid gap-4 sm:grid-cols-3">
+					<Field label={t('startDate')}>
+						<Input type="date" name="start_date" value={today} required />
+					</Field>
+					<Field label={t('cookedFoodDays')}>
+						<Input type="number" name="planned_day_count" value="7" min="1" max="14" required />
+					</Field>
+					<Field label={t('people')}>
+						<Input type="number" name="people_count" value="2" min="1" max="20" required />
+					</Field>
+					<div class="sm:col-span-3">
+						<Button disabled={Boolean(databaseError) || recipes.length === 0}>{t('generateDraft')}</Button>
+					</div>
+				</form>
+			</details>
+		</Panel>
 	</section>
 </AppLayout>

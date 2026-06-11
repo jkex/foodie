@@ -213,6 +213,15 @@ Notes:
 
 The generator fills the configured number of cooked-food days, not always 7 calendar days.
 
+Automatic weekly plan:
+
+1. Plans always start on a Monday.
+2. When the plan or shopping pages load and the latest plan starts before the current target Monday (or no plan exists), a draft plan is generated automatically with the defaults (7 cooked-food days, 2 people).
+3. Monday through Wednesday, the target Monday is the current week's Monday.
+4. From Thursday onward, the target Monday is next week's Monday.
+5. Auto-generation is skipped while there are no recipes.
+6. Implemented in `ensureWeeklyPlan` / `weeklyPlanStartDate` in `src/lib/plan.ts`.
+
 Rules:
 
 1. Default `planned_day_count` is `7`.
@@ -355,21 +364,22 @@ Primary mobile navigation:
 - Shopping
 - Settings
 
-Implemented primary route structure:
+Implemented route structure:
 
 ```text
 /             redirects to /plan
-/plan
-/recipes
-/shopping
+/plan         latest plan + generate form
+/plan/edit    adjust draft: block days, replace recipe, regenerate, accept
+/recipes      searchable list (?q=)
+/recipes/new  create recipe with structured ingredient rows
+/recipes/[id] edit or delete recipe
+/shopping     list grouped by category, local check-offs
 /settings
 ```
 
 Future route structure:
 
 ```text
-/recipes/new
-/recipes/[id]
 /history
 ```
 

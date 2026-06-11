@@ -1,0 +1,115 @@
+---
+import PageHeader from '../../components/PageHeader.astro';
+import Alert from '../../components/ui/Alert.astro';
+import Button from '../../components/ui/Button.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import Input from '../../components/ui/Input.astro';
+import Panel from '../../components/ui/Panel.astro';
+import Select from '../../components/ui/Select.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import { getDb, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../../lib/db';
+import { formatPlanDay, useTranslations } from '../../lib/i18n';
+import { ensureWeeklyPlan } from '../../lib/plan';
+
+let recipes: Recipe[] = [];
+let mealPlan: MealPlan | null = null;
+let mealPlanItems: MealPlanItem[] = [];
+let databaseError = '';
+
+try {
+	const db = getDb();
+	recipes = await listRecipes(db, Astro.locals.userId);
+	mealPlan = await ensureWeeklyPlan(db, Astro.locals.userId);
+	if (mealPlan) {
+		mealPlanItems = await listMealPlanItems(db, Astro.locals.userId, mealPlan.id);
+	}
+} catch (error) {
+	databaseError = error instanceof Error ? error.message : 'Unknown database error';
+}
+
+const { locale, t } = useTranslations(Astro);
+const draft = mealPlan?.status === 'draft' ? mealPlan : null;
+const recipesByName = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+---
+
+<AppLayout active="plan" title={t('adjustPlan')}>
+	<section class="grid gap-4">
+		<PageHeader title={t('adjustPlan')} backHref="/plan" backLabel={t('planNav')} />
+
+		{databaseError && (
+			<Alert title={t('databaseSetupNeeded')}>
+				<p class="m-0">{databaseError}</p>
+			</Alert>
+		)}
+
+		{draft ? (
+			<>
+				<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+					<strong class="text-neutral-900 dark:text-neutral-100">{draft.planned_day_count}</strong> {t('cookedFoodDaysFor')}{' '}
+					<strong class="text-neutral-900 dark:text-neutral-100">{draft.people_count}</strong> {t('peopleStarting')}{' '}
+					<strong class="text-neutral-900 dark:text-neutral-100">{draft.start_date}</strong>.
+				</p>
+
+				<div class="grid gap-3">
+					{mealPlanItems.map((item) => (
+						<Panel>
+							<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+								<div>
+									<strong class="block text-base font-semibold">{item.recipe_name}</strong>
+									<small class="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+										{formatPlanDay(locale, draft.start_date, item.start_day_index)}
+										{item.day_count > 1 && ` – ${formatPlanDay(locale, draft.start_date, item.start_day_index + item.day_count - 1)}`}
+									</small>
+								</div>
+								<small class="text-xs text-neutral-500 dark:text-neutral-400">{item.serving_multiplier.toFixed(2)}x {t('ingredientsMultiplier')}</small>
+							</div>
+							<div class="grid gap-3 sm:grid-cols-2">
+								<form method="post" action="/api/plans/items" class="flex items-end gap-2">
+									<input type="hidden" name="action" value="update_days" />
+									<input type="hidden" name="item_id" value={item.id} />
+									<label class="grid grow gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200">
+										<span>{t('days')}</span>
+										<Input type="number" name="day_count" value={String(item.day_count)} min="1" max={String(draft.planned_day_count)} required />
+									</label>
+									<Button variant="secondary">{t('update')}</Button>
+								</form>
+								<form method="post" action="/api/plans/items" class="flex items-end gap-2">
+									<input type="hidden" name="action" value="replace" />
+									<input type="hidden" name="item_id" value={item.id} />
+									<label class="grid grow gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200">
+										<span>{t('replaceWith')}</span>
+										<Select name="recipe_id" required>
+											{recipesByName.map((recipe) => (
+												<option value={recipe.id} selected={recipe.id === item.recipe_id}>{recipe.name}</option>
+											))}
+										</Select>
+									</label>
+									<Button variant="secondary">{t('replace')}</Button>
+								</form>
+							</div>
+						</Panel>
+					))}
+				</div>
+
+				<div class="grid gap-2 sm:flex sm:flex-wrap">
+					<form method="post" action="/api/plans/commit" class="contents">
+						<input type="hidden" name="meal_plan_id" value={draft.id} />
+						<Button>{t('acceptPlan')}</Button>
+					</form>
+					<form method="post" action="/api/plans" class="contents">
+						<input type="hidden" name="start_date" value={draft.start_date} />
+						<input type="hidden" name="planned_day_count" value={draft.planned_day_count} />
+						<input type="hidden" name="people_count" value={draft.people_count} />
+						<Button variant="secondary">{t('regeneratePlan')}</Button>
+					</form>
+				</div>
+			</>
+		) : (
+			!databaseError && (
+				<EmptyState title={t('noDraftPlan')} description={t('noDraftPlanHelp')}>
+					<Button variant="secondary" href="/plan">{t('planNav')}</Button>
+				</EmptyState>
+			)
+		)}
+	</section>
+</AppLayout>

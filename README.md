@@ -216,7 +216,7 @@ pnpm deploy:production
 - Keep the D1 binding name as `DB`.
 - Keep staging and production D1 databases separate.
 - Use `pnpm deploy:staging` and `pnpm deploy:production` instead of calling `wrangler deploy` directly; the scripts build with the correct `CLOUDFLARE_ENV`.
-- Use Tailwind utility classes for UI styling.
+- Use Tailwind utility classes for UI styling, through the shared components in `src/components/ui/` where one exists.
 - Treat this as a mobile-first PWA. Preserve manifest/service-worker behavior and bottom mobile navigation unless replacing it with a better mobile app shell.
 - The first version is server-rendered Astro with regular HTML forms and API routes.
 - Do not add React, shadcn/ui, or client-side state unless the feature clearly needs it.
@@ -231,6 +231,7 @@ Initial app capabilities:
 - Manage recipes.
 - Store structured ingredients.
 - Generate meal plans for a configurable number of cooked-food days.
+- Auto-create a draft weekly plan when none exists for the target week: plans always start on Monday; Mon–Wed targets this week's Monday, Thu–Sun targets next Monday (see `ensureWeeklyPlan` in `src/lib/plan.ts`).
 - Default people count is `2`.
 - Rotate recipes based on oldest cooked date/rotation order.
 - Support multi-day recipe blocks.
@@ -248,8 +249,40 @@ Current app routes:
 /auth/login   starts WorkOS AuthKit OAuth flow
 /auth/callback handles WorkOS callback and sets the sealed session cookie
 /logout       clears the session and redirects through WorkOS logout
-/plan         meal planning
-/recipes      recipe management
-/shopping     current shopping list
+/plan         latest plan overview and plan generation
+/plan/edit    adjust the draft plan: change block days, replace recipes, regenerate, accept
+/recipes      searchable recipe list (?q= filters server-side)
+/recipes/new  recipe editor (create) with structured ingredient rows
+/recipes/[id] recipe editor (edit/delete)
+/shopping     shopping list grouped by category with local check-offs
 /settings     language and theme settings
 ```
+
+API routes (form-posting endpoints, all redirect back to the relevant page):
+
+```text
+/api/recipes      create / update / delete via the `action` field
+/api/plans        generate or regenerate a draft plan
+/api/plans/commit accept a plan and rotate recipes
+/api/plans/items  update item day count or replace a recipe, then resequence the plan
+/api/ai/settings  save or remove the user's AI provider settings and API key
+/api/ai/recipe    generate a new recipe or edit an existing one with the configured LLM
+```
+
+## Per-User Data
+
+All data is scoped to the signed-in WorkOS user. `src/middleware.ts` sets `locals.userId` (the WorkOS user id, or `'local'` when WorkOS is not configured, e.g. local dev), and every query in `src/lib/db.ts` / `src/lib/ai.ts` filters by it. Rows created before user scoping carry the default `user_id = 'local'`; to hand existing production data to a user, run a one-off `UPDATE <table> SET user_id = '<workos-user-id>' WHERE user_id = 'local'` against the relevant database.
+
+## AI Recipe Assistant
+
+Users bring their own API key (Settings → AI assistant). Supported providers: Anthropic (default model `claude-opus-4-8`, via `@anthropic-ai/sdk` with structured outputs / `output_config.format`) and OpenAI (default `gpt-4o`, via the REST chat-completions API with `response_format: json_schema`). The recipe JSON schema lives in `src/lib/ai.ts`. Keys are stored per user in the `ai_settings` D1 table — they are not encrypted at rest, which is acceptable for this household app but should be revisited before any multi-tenant use. The `nodejs_compat` compatibility flag in `wrangler.toml` is required by the Anthropic SDK.
+
+## UI Structure
+
+- Layout/shell: `src/layouts/AppLayout.astro` (bottom nav on mobile, header nav on desktop).
+- Shared UI primitives: `src/components/ui/` (Panel, Button, Input, Select, Textarea, Field, Badge, EmptyState, Alert) — use these instead of repeating Tailwind class strings in pages.
+- Page header with optional back link: `src/components/PageHeader.astro`.
+- Recipe editor: `src/components/recipes/RecipeForm.astro` with `IngredientRow.astro` (structured rows, add/remove via a small inline script, plain form post).
+- i18n: server-rendered from `src/lib/i18n.ts`. The locale comes from the `foodie.locale` cookie (set on the settings page, which reloads) with `Accept-Language` fallback. There is no client-side re-translation pass; do not reintroduce `data-i18n` attributes.
+- Theme stays client-only in `localStorage` (`foodie.theme`); shopping check-offs are local UI state in `localStorage` (`foodie.shopping.<planId>`).
+- Accent color is emerald; keep primary actions on the emerald `Button` variant.

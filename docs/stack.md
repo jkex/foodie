@@ -184,24 +184,34 @@ Mobile-first shell rules:
 - Respect safe-area insets with `env(safe-area-inset-*)`.
 - Keep touch targets at least about 44px tall.
 - Optimize the phone workflow first; desktop can use the same sections in wider grids.
-- The app uses real routes for primary navigation:
+- The app uses real routes for primary navigation, with drill-down sub-routes that keep the parent tab active and show a back link:
 
 ```text
 /             redirects to /plan
-/plan         meal planning
-/recipes      recipe management
-/shopping     current shopping list
+/plan         latest plan + plan generation
+/plan/edit    adjust the draft plan
+/recipes      searchable recipe list
+/recipes/new  recipe editor (create)
+/recipes/[id] recipe editor (edit/delete)
+/shopping     shopping list grouped by category
 /settings     language and theme settings
 ```
 
-Theme and language preferences use a small no-framework client script in `src/pages/index.astro`:
+Component structure:
 
-- Initial locale is chosen from the request `Accept-Language` header.
-- Browser language is used client-side if no stored locale exists.
-- User locale overrides are stored in `localStorage` under `foodie.locale`.
-- Theme supports `system`, `light`, and `dark`.
-- Theme overrides are stored in `localStorage` under `foodie.theme`.
-- `system` theme follows `prefers-color-scheme`.
+- `src/layouts/AppLayout.astro` is the app shell (PWA meta, theme bootstrap, bottom/top nav, service worker registration).
+- `src/components/ui/` holds the shared primitives (Panel, Button, Input, Select, Textarea, Field, Badge, EmptyState, Alert). Pages must use these instead of duplicating Tailwind class strings.
+- `src/components/PageHeader.astro` renders the page title, optional subtitle, optional back link, and an `action` slot.
+- `src/components/recipes/RecipeForm.astro` is the shared create/edit recipe form with structured ingredient rows (`IngredientRow.astro`); rows are added/removed by a small inline script cloning a `<template>`, and the form is still a plain HTML post.
+- The accent color is emerald (`emerald-600` light / `emerald-500` dark) on a neutral palette.
+
+Language and theme:
+
+- The locale is server-rendered. `src/lib/i18n.ts` resolves it from the `foodie.locale` cookie, falling back to the request `Accept-Language` header.
+- The settings page writes the `foodie.locale` cookie on change and reloads; there is no client-side re-translation pass and no `data-i18n` attributes. Do not reintroduce them.
+- All UI strings live in `src/lib/preferences.ts` (`translations`, English and German). Add new keys to both locales.
+- Theme supports `system`, `light`, and `dark`, stored client-side in `localStorage` under `foodie.theme`; `system` follows `prefers-color-scheme`.
+- Shopping list check-offs are local UI state stored in `localStorage` under `foodie.shopping.<planId>`.
 
 Prefer this pattern until there is a clear need for client-side state, such as:
 
@@ -210,6 +220,20 @@ Prefer this pattern until there is a clear need for client-side state, such as:
 - Calendar widgets
 - Command menus
 - Offline shopping-list state
+
+## AI Integration
+
+- Users store their own API key per user in the `ai_settings` table (Settings page).
+- Anthropic calls go through the official `@anthropic-ai/sdk` (never raw fetch) with `output_config: {format: {type: 'json_schema', ...}}` for guaranteed-valid recipe JSON; default model `claude-opus-4-8`.
+- OpenAI calls use the REST chat-completions endpoint with `response_format: json_schema` (no SDK dependency); default model `gpt-4o`.
+- The shared recipe JSON schema and provider dispatch live in `src/lib/ai.ts`.
+- `wrangler.toml` needs `compatibility_flags = ["nodejs_compat"]` for the Anthropic SDK on Workers.
+
+## Per-User Data Scoping
+
+- `recipes`, `ingredients`, `meal_plans`, and `ai_settings` carry a `user_id` column (WorkOS user id; `'local'` when WorkOS is unconfigured).
+- `src/middleware.ts` resolves `locals.userId`; all functions in `src/lib/db.ts`, `src/lib/ai.ts`, and `src/lib/plan.ts` take it as a parameter and must filter by it — never add an unscoped query.
+- Ingredient names are unique per user (`ingredients_user_name_unique`), and AI settings are one row per user.
 
 ## Package Manager Policy
 

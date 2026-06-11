@@ -5,6 +5,7 @@ export const recipes = sqliteTable(
 	'recipes',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull().default('local'),
 		name: text('name').notNull(),
 		description: text('description').notNull().default(''),
 		instructions: text('instructions').notNull().default(''),
@@ -19,6 +20,7 @@ export const recipes = sqliteTable(
 		check('recipes_base_servings_positive', sql`${table.baseServings} > 0`),
 		check('recipes_default_days_positive', sql`${table.defaultDays} > 0`),
 		index('idx_recipes_rotation').on(table.lastCookedAt, table.rotationIndex, table.id),
+		index('idx_recipes_user').on(table.userId),
 	],
 );
 
@@ -26,12 +28,13 @@ export const ingredients = sqliteTable(
 	'ingredients',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull().default('local'),
 		name: text('name').notNull(),
 		category: text('category').notNull().default('Other'),
 		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 		updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 	},
-	(table) => [uniqueIndex('ingredients_name_unique').on(table.name)],
+	(table) => [uniqueIndex('ingredients_user_name_unique').on(table.userId, table.name)],
 );
 
 export const recipeIngredients = sqliteTable(
@@ -60,6 +63,7 @@ export const mealPlans = sqliteTable(
 	'meal_plans',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull().default('local'),
 		startDate: text('start_date').notNull(),
 		plannedDayCount: integer('planned_day_count').notNull().default(7),
 		peopleCount: integer('people_count').notNull().default(2),
@@ -72,6 +76,7 @@ export const mealPlans = sqliteTable(
 		check('meal_plans_people_count_positive', sql`${table.peopleCount} > 0`),
 		check('meal_plans_status_valid', sql`${table.status} IN ('draft', 'accepted')`),
 		index('idx_meal_plans_created').on(table.createdAt),
+		index('idx_meal_plans_user').on(table.userId),
 	],
 );
 
@@ -98,6 +103,20 @@ export const mealPlanItems = sqliteTable(
 		check('meal_plan_items_serving_multiplier_positive', sql`${table.servingMultiplier} > 0`),
 		index('idx_meal_plan_items_plan').on(table.mealPlanId, table.startDayIndex),
 	],
+);
+
+export const aiSettings = sqliteTable(
+	'ai_settings',
+	{
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	userId: text('user_id').notNull().default('local'),
+	provider: text('provider', { enum: ['anthropic', 'openai'] }).notNull(),
+	apiKey: text('api_key').notNull(),
+	model: text('model').notNull().default(''),
+	createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => [uniqueIndex('ai_settings_user_unique').on(table.userId)],
 );
 
 export type RecipeRow = typeof recipes.$inferSelect;

@@ -1,50 +1,50 @@
 ---
 import { Apple, LogIn } from '@lucide/astro';
 import { getAuthConfig, safeReturnTo } from '../lib/auth';
-import { detectLocale, translations, type TranslationKey } from '../lib/preferences';
+import { useTranslations } from '../lib/i18n';
 import '../styles/global.css';
 
-const locale = detectLocale(Astro.request.headers.get('accept-language'));
-const t = (key: TranslationKey) => translations[locale][key];
+const { locale, t } = useTranslations(Astro);
 const returnTo = safeReturnTo(Astro.url.searchParams.get('returnTo'));
 const configured = Boolean(getAuthConfig());
-const buttonClass = 'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-950 shadow-xs transition hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:bg-neutral-900';
+const buttonClass =
+	'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-950 no-underline shadow-xs transition hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800';
 ---
 
 <html lang={locale}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<title>Foodie Login</title>
+		<title>{t('signInTitle')} · Foodie</title>
 		<script is:inline>
 			const storedTheme = localStorage.getItem('foodie.theme') || 'system';
 			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 			document.documentElement.classList.toggle('dark', storedTheme === 'dark' || (storedTheme === 'system' && prefersDark));
 		</script>
 	</head>
-	<body class="grid min-h-screen place-items-center bg-neutral-50 p-4 font-sans text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
-		<main class="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-5 shadow-xs dark:border-neutral-800 dark:bg-neutral-950">
-			<div class="mb-5 grid gap-2">
-				<span class="grid h-10 w-10 place-items-center rounded-lg bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">F</span>
+	<body class="grid min-h-screen place-items-center bg-neutral-100 p-4 font-sans text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
+		<main class="w-full max-w-sm rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+			<div class="mb-6 grid gap-2">
+				<span class="grid h-11 w-11 place-items-center rounded-xl bg-emerald-600 text-base font-bold text-white dark:bg-emerald-500 dark:text-emerald-950">F</span>
 				<h1 class="m-0 text-2xl font-semibold tracking-tight">Foodie</h1>
-				<p data-i18n="signInHelp" class="m-0 text-sm text-neutral-500 dark:text-neutral-400">{t('signInHelp')}</p>
+				<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">{t('signInHelp')}</p>
 			</div>
 
 			{configured ? (
 				<div class="grid gap-3">
 					<a class={buttonClass} href={`/auth/login?provider=GoogleOAuth&returnTo=${encodeURIComponent(returnTo)}`}>
 						<LogIn size={18} />
-						<span data-i18n="continueWithGoogle">{t('continueWithGoogle')}</span>
+						<span>{t('continueWithGoogle')}</span>
 					</a>
 					<a class={buttonClass} href={`/auth/login?provider=AppleOAuth&returnTo=${encodeURIComponent(returnTo)}`}>
 						<Apple size={18} />
-						<span data-i18n="continueWithApple">{t('continueWithApple')}</span>
+						<span>{t('continueWithApple')}</span>
 					</a>
 				</div>
 			) : (
-				<div class="grid gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-					<strong data-i18n="workosMissing">{t('workosMissing')}</strong>
-					<p data-i18n="workosMissingHelp" class="m-0">{t('workosMissingHelp')}</p>
+				<div class="grid gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+					<strong>{t('workosMissing')}</strong>
+					<p class="m-0">{t('workosMissingHelp')}</p>
 				</div>
 			)}
 		</main>

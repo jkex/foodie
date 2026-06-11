@@ -65,8 +65,8 @@ This document tracks enhancements that should not complicate the first implement
 ## UX Improvements
 
 - Mobile-first shopping mode.
-- Persistent checked-off shopping list state.
-- Dark mode.
+- Checked-off shopping list state synced across devices (currently per-device in `localStorage`).
+- Dark mode is implemented; refine contrast if needed.
 - Offline-friendly behavior.
 - Drag-and-drop meal planning.
 - Calendar view.

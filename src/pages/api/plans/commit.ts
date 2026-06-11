@@ -1,16 +1,13 @@
 import type { APIRoute } from 'astro';
 import { commitMealPlanRotation, getDb } from '../../../lib/db';
 
-export const POST: APIRoute = async ({ request, locals, redirect }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const formData = await request.formData();
 	const mealPlanId = Number(formData.get('meal_plan_id'));
-	const db = getDb();
 
-	if (!Number.isFinite(mealPlanId)) {
-		return redirect('/');
+	if (Number.isFinite(mealPlanId)) {
+		await commitMealPlanRotation(getDb(), locals.userId, mealPlanId);
 	}
 
-	await commitMealPlanRotation(db, mealPlanId);
-
-	return redirect('/');
+	return redirect('/plan');
 };

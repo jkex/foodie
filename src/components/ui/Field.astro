@@ -1,0 +1,8 @@
+---
+const { label, class: className = '' } = Astro.props as { label: string; class?: string };
+---
+
+<label class:list={['grid gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200', className]}>
+	<span>{label}</span>
+	<slot />
+</label>

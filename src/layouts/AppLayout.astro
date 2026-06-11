@@ -1,6 +1,7 @@
 ---
 import { CalendarDays, ChefHat, Settings, ShoppingBasket } from '@lucide/astro';
-import { detectLocale, translations, type Locale, type TranslationKey } from '../lib/preferences';
+import { useTranslations } from '../lib/i18n';
+import type { TranslationKey } from '../lib/preferences';
 import '../styles/global.css';
 
 type NavItem = {
@@ -10,9 +11,11 @@ type NavItem = {
 	active: boolean;
 };
 
-const { active = 'plan' } = Astro.props as { active?: 'plan' | 'recipes' | 'shopping' | 'settings' };
-const locale = detectLocale(Astro.request.headers.get('accept-language'));
-const t = (key: TranslationKey) => translations[locale][key];
+const { active = 'plan', title } = Astro.props as {
+	active?: 'plan' | 'recipes' | 'shopping' | 'settings';
+	title?: string;
+};
+const { locale, t } = useTranslations(Astro);
 const navItems: NavItem[] = [
 	{ href: '/plan', key: 'planNav', icon: CalendarDays, active: active === 'plan' },
 	{ href: '/recipes', key: 'recipesNav', icon: ChefHat, active: active === 'recipes' },
@@ -33,117 +36,72 @@ const navItems: NavItem[] = [
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 		<meta name="apple-mobile-web-app-title" content="Foodie" />
-		<title>Foodie</title>
+		<title>{title ? `${title} · Foodie` : 'Foodie'}</title>
 		<script is:inline>
 			const storedTheme = localStorage.getItem('foodie.theme') || 'system';
 			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 			document.documentElement.classList.toggle('dark', storedTheme === 'dark' || (storedTheme === 'system' && prefersDark));
 		</script>
 	</head>
-	<body class="m-0 bg-neutral-50 font-sans text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
-		<header class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 md:px-8">
+	<body class="m-0 bg-neutral-100 font-sans text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
+		<header class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 md:px-8">
 			<a href="/plan" class="flex items-center gap-2 text-inherit no-underline">
-				<span class="grid h-8 w-8 place-items-center rounded-lg bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">F</span>
+				<span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-600 text-sm font-bold text-white dark:bg-emerald-500 dark:text-emerald-950">F</span>
 				<span class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Foodie</span>
 			</a>
-			<nav class="hidden items-center rounded-lg border border-neutral-200 bg-white p-1 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:flex" aria-label="Primary">
+			<nav class="hidden items-center rounded-2xl border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 md:flex" aria-label="Primary">
 				{navItems.map((item) => {
 					const Icon = item.icon;
 					return (
 						<a
 							href={item.href}
+							aria-current={item.active ? 'page' : undefined}
 							class:list={[
-								'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition',
+								'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium no-underline transition',
 								item.active
-									? 'bg-neutral-950 text-white dark:bg-neutral-50 dark:text-neutral-950'
-									: 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900',
+									? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950'
+									: 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800',
 							]}
 						>
 							<Icon size={16} strokeWidth={2} />
-							<span data-i18n={item.key}>{t(item.key)}</span>
+							<span>{t(item.key)}</span>
 						</a>
 					);
 				})}
 			</nav>
 		</header>
 
-		<main class="mx-auto max-w-6xl p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8">
+		<main class="mx-auto max-w-5xl p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-8">
 			<slot />
 		</main>
 
-		<nav class="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95 md:hidden" aria-label="Primary">
+		<nav
+			class="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95 md:hidden"
+			aria-label="Primary"
+		>
 			<div class="mx-auto grid max-w-lg grid-cols-4 gap-1">
 				{navItems.map((item) => {
 					const Icon = item.icon;
 					return (
 						<a
 							href={item.href}
+							aria-current={item.active ? 'page' : undefined}
 							class:list={[
-								'rounded-md px-2 py-2 text-center text-xs font-medium transition',
+								'rounded-xl px-2 py-2 text-center text-xs font-medium no-underline transition',
 								item.active
-									? 'bg-neutral-950 text-white dark:bg-neutral-50 dark:text-neutral-950'
+									? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
 									: 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900',
 							]}
 						>
 							<Icon class="mx-auto mb-1" size={18} strokeWidth={2} />
-							<span data-i18n={item.key}>{t(item.key)}</span>
+							<span>{t(item.key)}</span>
 						</a>
 					);
 				})}
 			</div>
 		</nav>
 
-		<script type="application/json" id="foodie-translations" set:html={JSON.stringify(translations)} />
 		<script is:inline>
-			const translations = JSON.parse(document.getElementById('foodie-translations').textContent || '{}');
-			const localeSelect = document.getElementById('locale-select');
-			const themeSelect = document.getElementById('theme-select');
-			const media = window.matchMedia('(prefers-color-scheme: dark)');
-
-			function browserLocale() {
-				return navigator.language && navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en';
-			}
-
-			function applyLocale(locale) {
-				const safeLocale = translations[locale] ? locale : 'en';
-				document.documentElement.lang = safeLocale;
-				document.querySelectorAll('[data-i18n]').forEach((node) => {
-					const key = node.getAttribute('data-i18n');
-					if (key && translations[safeLocale][key]) node.textContent = translations[safeLocale][key];
-				});
-				document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {
-					const key = node.getAttribute('data-i18n-placeholder');
-					if (key && translations[safeLocale][key]) node.setAttribute('placeholder', translations[safeLocale][key]);
-				});
-				if (localeSelect) localeSelect.value = safeLocale;
-			}
-
-			function applyTheme(theme) {
-				const safeTheme = ['system', 'light', 'dark'].includes(theme) ? theme : 'system';
-				const dark = safeTheme === 'dark' || (safeTheme === 'system' && media.matches);
-				document.documentElement.classList.toggle('dark', dark);
-				if (themeSelect) themeSelect.value = safeTheme;
-			}
-
-			const storedLocale = localStorage.getItem('foodie.locale');
-			const initialLocale = storedLocale || browserLocale();
-			applyLocale(initialLocale);
-			applyTheme(localStorage.getItem('foodie.theme') || 'system');
-
-			localeSelect?.addEventListener('change', () => {
-				localStorage.setItem('foodie.locale', localeSelect.value);
-				applyLocale(localeSelect.value);
-			});
-
-			themeSelect?.addEventListener('change', () => {
-				localStorage.setItem('foodie.theme', themeSelect.value);
-				applyTheme(themeSelect.value);
-			});
-
-			media.addEventListener('change', () => {
-				applyTheme(localStorage.getItem('foodie.theme') || 'system');
-			});
-
 			if ('serviceWorker' in navigator) {
 				window.addEventListener('load', () => {
 					navigator.serviceWorker.register('/sw.js').catch(() => {});
