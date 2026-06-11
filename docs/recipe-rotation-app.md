@@ -4,6 +4,8 @@
 
 Build a full-stack TypeScript app for managing personal recipes, generating a rotating meal plan, and producing a useful shopping list for the selected planning period.
 
+The app is mobile-first and should be installable as a PWA. Core weekly planning and shopping workflows must be comfortable on a phone before optimizing desktop layouts.
+
 The app should support one main cooked meal per planned day. The user can configure how many days need cooked food for a given plan. For example, a normal week may need 7 days of food, while a week with travel over the weekend may only need 5 days.
 
 Core behavior:
@@ -329,6 +331,17 @@ Capabilities:
 - Group ingredients by category.
 - Show summed quantity and unit.
 - Support checking items off locally in the UI.
+
+### Mobile PWA Shell
+
+Capabilities:
+
+- Installable app manifest.
+- Service worker for basic app shell caching.
+- Mobile safe-area spacing.
+- Bottom navigation for primary mobile workflows.
+- System/light/dark theme support.
+- Browser language detection with English and German UI strings.
 
 ## API / Server Actions
 

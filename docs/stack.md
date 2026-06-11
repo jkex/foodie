@@ -80,7 +80,14 @@ Use Tailwind utility classes for app UI. Do not add shadcn/ui unless the app gai
 
 ## UI Approach
 
-The first version is server-rendered Astro with regular HTML forms and API routes.
+The app is mobile-first and installable as a PWA. The first version is server-rendered Astro with regular HTML forms and API routes.
+
+PWA files:
+
+- `public/manifest.webmanifest`
+- `public/sw.js`
+
+The service worker caches the app shell and static assets only. API routes and form submissions stay network-first by not handling non-GET requests or `/api/*` requests in the service worker.
 
 Theme and language preferences use a small no-framework client script in `src/pages/index.astro`:
 

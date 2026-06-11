@@ -47,6 +47,10 @@ export const translations = {
 		system: 'System',
 		light: 'Light',
 		dark: 'Dark',
+		planNav: 'Plan',
+		recipesNav: 'Recipes',
+		shoppingNav: 'Shopping',
+		settingsNav: 'Settings',
 	},
 	de: {
 		appTitle: 'Rezeptrotation und Einkaufsliste',
@@ -93,6 +97,10 @@ export const translations = {
 		system: 'System',
 		light: 'Hell',
 		dark: 'Dunkel',
+		planNav: 'Plan',
+		recipesNav: 'Rezepte',
+		shoppingNav: 'Einkauf',
+		settingsNav: 'Einstellungen',
 	},
 } as const;
 
@@ -101,4 +109,3 @@ export type TranslationKey = keyof typeof translations.en;
 export function detectLocale(acceptLanguage: string | null): Locale {
 	return acceptLanguage?.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
-

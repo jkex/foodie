@@ -43,11 +43,11 @@ function formatQuantity(value: number) {
 	return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-const panelClass = 'rounded-lg border border-[#dfe5dc] bg-white p-5 dark:border-slate-700 dark:bg-slate-900';
+const panelClass = 'rounded-lg border border-[#dfe5dc] bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5';
 const inputClass = 'w-full rounded-md border border-[#c9d1c7] bg-white px-3 py-2 font-normal text-[#1f2522] dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100';
 const labelClass = 'grid gap-1.5 font-bold';
-const buttonClass = 'cursor-pointer rounded-md bg-[#1f5f4a] px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50';
-const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 font-bold text-white';
+const buttonClass = 'min-h-11 cursor-pointer rounded-md bg-[#1f5f4a] px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50';
+const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 font-bold text-white';
 ---
 
 <html lang={locale}>
@@ -55,8 +55,13 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="theme-color" content="#1f5f4a" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Foodie" />
 		<title>Foodie</title>
 		<script is:inline>
 			const storedTheme = localStorage.getItem('foodie.theme') || 'system';
@@ -65,12 +70,12 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 		</script>
 	</head>
 	<body class="m-0 bg-[#f6f7f2] font-sans text-[#1f2522] dark:bg-slate-950 dark:text-slate-100">
-		<header class="mx-auto flex max-w-[1180px] flex-col gap-6 px-8 pt-8 md:flex-row md:items-start md:justify-between">
+		<header class="mx-auto flex max-w-[1180px] flex-col gap-4 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 md:flex-row md:items-start md:justify-between md:px-8">
 			<div>
-				<p class="mb-4 font-extrabold text-[#1f5f4a] uppercase">Foodie</p>
-				<h1 data-i18n="appTitle" class="m-0 max-w-3xl text-5xl leading-none font-bold md:text-6xl">{t('appTitle')}</h1>
+				<p class="mb-2 font-extrabold text-[#1f5f4a] uppercase">Foodie</p>
+				<h1 data-i18n="appTitle" class="m-0 max-w-3xl text-3xl leading-none font-bold sm:text-4xl md:text-6xl">{t('appTitle')}</h1>
 			</div>
-			<div class="grid gap-3 rounded-lg border border-[#dfe5dc] bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900 md:min-w-56">
+			<div id="settings" class="grid scroll-mt-4 gap-3 rounded-lg border border-[#dfe5dc] bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900 md:min-w-56">
 				<label class="grid gap-1 font-bold">
 					<span data-i18n="language">{t('language')}</span>
 					<select id="locale-select" class={inputClass}>
@@ -89,7 +94,7 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 			</div>
 		</header>
 
-		<main class="mx-auto max-w-[1180px] p-8">
+		<main class="mx-auto max-w-[1180px] p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8">
 			{databaseError && (
 				<section class="mb-4 rounded-lg border border-[#e3c567] bg-[#fff7e0] p-5 dark:border-amber-600 dark:bg-amber-950">
 					<h2 data-i18n="databaseSetupNeeded" class="mt-0 text-2xl font-bold">{t('databaseSetupNeeded')}</h2>
@@ -98,7 +103,7 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 				</section>
 			)}
 
-			<section class="my-4 grid items-start gap-4 md:grid-cols-2">
+			<section id="plan" class="my-4 grid scroll-mt-4 items-start gap-4 md:grid-cols-2">
 				<div class={panelClass}>
 					<h2 data-i18n="generatePlan" class="mt-0 text-2xl font-bold">{t('generatePlan')}</h2>
 					<form method="post" action="/api/plans" class="grid gap-4">
@@ -147,7 +152,7 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 				</div>
 			</section>
 
-			<section class={panelClass}>
+			<section id="recipes" class={`${panelClass} scroll-mt-4`}>
 				<h2 data-i18n="addRecipe" class="mt-0 text-2xl font-bold">{t('addRecipe')}</h2>
 				<form method="post" action="/api/recipes" class="grid gap-4 md:grid-cols-3">
 					<label class={labelClass}>
@@ -208,7 +213,7 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 					)}
 				</div>
 
-				<div class={panelClass}>
+				<div id="shopping" class={`${panelClass} scroll-mt-4`}>
 					<h2 data-i18n="shoppingList" class="mt-0 text-2xl font-bold">{t('shoppingList')}</h2>
 					{shoppingList.length > 0 ? (
 						<ul class="grid list-none gap-3 p-0">
@@ -228,6 +233,26 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 				</div>
 			</section>
 		</main>
+		<nav class="fixed inset-x-0 bottom-0 z-20 border-t border-[#dfe5dc] bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 md:hidden" aria-label="Primary">
+			<div class="mx-auto grid max-w-lg grid-cols-4 gap-1">
+				<a href="#plan" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
+					<span class="block text-lg leading-none">+</span>
+					<span data-i18n="planNav">{t('planNav')}</span>
+				</a>
+				<a href="#recipes" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
+					<span class="block text-lg leading-none">=</span>
+					<span data-i18n="recipesNav">{t('recipesNav')}</span>
+				</a>
+				<a href="#shopping" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
+					<span class="block text-lg leading-none">[]</span>
+					<span data-i18n="shoppingNav">{t('shoppingNav')}</span>
+				</a>
+				<a href="#settings" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
+					<span class="block text-lg leading-none">...</span>
+					<span data-i18n="settingsNav">{t('settingsNav')}</span>
+				</a>
+			</div>
+		</nav>
 		<script type="application/json" id="foodie-translations" set:html={JSON.stringify(translations)} />
 		<script is:inline>
 			const translations = JSON.parse(document.getElementById('foodie-translations').textContent || '{}');
@@ -278,6 +303,12 @@ const secondaryButtonClass = 'cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 f
 			media.addEventListener('change', () => {
 				applyTheme(localStorage.getItem('foodie.theme') || 'system');
 			});
+
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js').catch(() => {});
+				});
+			}
 		</script>
 	</body>
 </html>
