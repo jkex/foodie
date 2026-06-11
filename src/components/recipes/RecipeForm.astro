@@ -23,39 +23,41 @@ const isEdit = Boolean(recipe);
 
 	<div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
 		<Field label={t('name')}>
-			<Input name="name" required placeholder={t('recipeNamePlaceholder')} value={recipe?.name ?? ''} />
+			<Input name="name" required placeholder={t('recipeNamePlaceholder')} value={recipe?.name ?? ''} disabled={disabled} />
 		</Field>
 		<Field label={t('baseServings')}>
-			<Input type="number" name="base_servings" value={String(recipe?.base_servings ?? 2)} min="1" step="0.5" required />
+			<Input type="number" name="base_servings" value={String(recipe?.base_servings ?? 2)} min="1" step="0.5" required disabled={disabled} />
 		</Field>
 		<Field label={t('defaultDays')}>
-			<Input type="number" name="default_days" value={String(recipe?.default_days ?? 1)} min="1" max="7" required />
+			<Input type="number" name="default_days" value={String(recipe?.default_days ?? 1)} min="1" max="7" required disabled={disabled} />
 		</Field>
 	</div>
 
 	<Field label={t('description')}>
-		<Input name="description" placeholder={t('descriptionPlaceholder')} value={recipe?.description ?? ''} />
+		<Input name="description" placeholder={t('descriptionPlaceholder')} value={recipe?.description ?? ''} disabled={disabled} />
 	</Field>
 
 	<Field label={t('instructions')}>
-		<Textarea name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}>{recipe?.instructions ?? ''}</Textarea>
+		<Textarea name="instructions" rows="4" placeholder={t('instructionsPlaceholder')} disabled={disabled}>{recipe?.instructions ?? ''}</Textarea>
 	</Field>
 
 	<div class="grid gap-2">
 		<span class="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t('ingredients')}</span>
 		<div class="grid gap-2" data-ingredient-rows>
 			{ingredients.map((ingredient) => (
-				<IngredientRow ingredient={ingredient} />
+				<IngredientRow ingredient={ingredient} disabled={disabled} />
 			))}
-			{ingredients.length === 0 && <IngredientRow />}
+			{ingredients.length === 0 && <IngredientRow disabled={disabled} />}
 		</div>
 		<template data-ingredient-template>
-			<IngredientRow />
+			<IngredientRow disabled={disabled} />
 		</template>
-		<Button variant="secondary" type="button" data-add-ingredient class="w-fit">
-			<Plus size={16} strokeWidth={2} />
-			{t('addIngredient')}
-		</Button>
+		{!disabled && (
+			<Button variant="secondary" type="button" data-add-ingredient class="w-fit">
+				<Plus size={16} strokeWidth={2} />
+				{t('addIngredient')}
+			</Button>
+		)}
 	</div>
 
 	<div>

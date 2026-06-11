@@ -1,4 +1,4 @@
-import { and, asc, eq, max, sql } from 'drizzle-orm';
+import { and, asc, eq, max, sql, or } from 'drizzle-orm';
 import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import { env } from 'cloudflare:workers';
 import { ingredients, mealPlanItems, mealPlans, recipeIngredients, recipes } from '../db/schema';
@@ -13,6 +13,7 @@ export type Database = DrizzleD1Database<{
 
 export type Recipe = {
 	id: number;
+	userId: string;
 	name: string;
 	description: string;
 	instructions: string;
@@ -84,7 +85,11 @@ export async function listRecipes(db: Database, userId: string): Promise<Recipe[
 	const rows = await db
 		.select()
 		.from(recipes)
-		.where(eq(recipes.userId, userId))
+		.where(
+			userId === 'local'
+				? eq(recipes.userId, 'local')
+				: or(eq(recipes.userId, userId), eq(recipes.userId, 'local'))
+		)
 		.orderBy(sql`${recipes.lastCookedAt} IS NOT NULL`, asc(recipes.lastCookedAt), asc(recipes.rotationIndex), asc(recipes.id));
 
 	return rows.map(toRecipe);
@@ -158,7 +163,14 @@ export async function getRecipe(db: Database, userId: string, recipeId: number):
 	const [row] = await db
 		.select()
 		.from(recipes)
-		.where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
+		.where(
+			and(
+				eq(recipes.id, recipeId),
+				userId === 'local'
+					? eq(recipes.userId, 'local')
+					: or(eq(recipes.userId, userId), eq(recipes.userId, 'local'))
+			)
+		)
 		.limit(1);
 	return row ? toRecipe(row) : null;
 }
@@ -177,7 +189,7 @@ export async function updateRecipe(
 	},
 ): Promise<void> {
 	const owned = await getRecipe(db, userId, recipeId);
-	if (!owned) {
+	if (!owned || (userId !== 'local' && owned.userId !== userId)) {
 		return;
 	}
 
@@ -427,6 +439,7 @@ export async function commitMealPlanRotation(db: Database, userId: string, mealP
 function toRecipe(row: typeof recipes.$inferSelect): Recipe {
 	return {
 		id: row.id,
+		userId: row.userId,
 		name: row.name,
 		description: row.description,
 		instructions: row.instructions,
