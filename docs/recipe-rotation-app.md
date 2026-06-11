@@ -22,7 +22,7 @@ Core behavior:
 Defaults:
 
 - People count: `2`
-- Cooked-food days per plan: `5`
+- Cooked-food days per plan: `7`
 - Main meals per cooked-food day: `1`
 
 ## Core User Workflows
@@ -79,8 +79,11 @@ Use:
 
 - Astro
 - TypeScript
-- Cloudflare Pages
+- Cloudflare Workers
 - Cloudflare D1
+- Drizzle ORM
+- Tailwind CSS
+- pnpm
 
 Use Cloudflare D1 instead of Worker KV because the app needs relational data and aggregation across:
 
@@ -343,6 +346,27 @@ Capabilities:
 - System/light/dark theme support.
 - Browser language detection with English and German UI strings.
 
+Primary mobile navigation:
+
+- Plan
+- Recipes
+- Shopping
+- Settings
+
+The current single-page implementation may use anchored sections, but the intended route structure is:
+
+```text
+/plan
+/recipes
+/recipes/new
+/recipes/[id]
+/shopping
+/history
+/settings
+```
+
+`/history` is secondary and should not crowd the first mobile bottom nav unless usage proves it belongs there.
+
 ## API / Server Actions
 
 Prefer Astro server actions or API routes for mutations.
@@ -373,7 +397,7 @@ Important behavior:
 
 Target deployment:
 
-- Cloudflare Pages
+- Cloudflare Workers
 - Astro Cloudflare adapter
 - Cloudflare D1 binding
 
@@ -384,6 +408,16 @@ Expected implementation files:
 - D1 migration files
 - TypeScript config
 - Cloudflare D1 database binding
+
+Deployment notes:
+
+- `main` is staging.
+- `prod` is production.
+- Staging D1 database: `foodie`.
+- Production D1 database: `foodie-production`.
+- D1 binding name must remain `DB`.
+- Do not add `pages_build_output_dir` to `wrangler.toml`; this app deploys as a Worker with assets, not as a Pages project.
+- Build with the correct `CLOUDFLARE_ENV` before deploy so Astro emits the correct generated Wrangler config.
 
 ## Related Documents
 
@@ -410,4 +444,5 @@ The first implementation should satisfy:
 - Draft plan generation does not update rotation history.
 - Accepting a plan moves used recipes to the end of the rotation.
 - Shopping list groups duplicate ingredients and sums matching units.
-- App is ready to deploy to Cloudflare Pages with D1.
+- App is ready to deploy to Cloudflare Workers with D1.
+- App is mobile-first and installable as a PWA.

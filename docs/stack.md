@@ -30,6 +30,31 @@ Leave the Cloudflare build command empty because the deploy scripts build intern
 
 This is required because the Astro Cloudflare adapter emits `dist/server/wrangler.json` during build, and Wrangler deploys using that generated config.
 
+### Deployment Lessons Learned
+
+- `wrangler.toml` is the source of truth for Worker names, D1 bindings, and environment-specific resources.
+- Do not configure D1 bindings manually in the Cloudflare dashboard unless the matching change is also made in `wrangler.toml`; the next Wrangler deploy can overwrite dashboard-only changes.
+- The generated `dist/server/wrangler.json` is what Wrangler actually deploys after `astro build`.
+- `CLOUDFLARE_ENV` must be set before `astro build`, not only before `wrangler deploy`, because the generated deploy config captures the selected environment at build time.
+- Running `wrangler deploy --env production` against a staging-built `dist/` can deploy with the staging D1 binding. Use the package scripts instead.
+- A dry run is the fastest binding check:
+
+```bash
+pnpm build:staging
+pnpm wrangler deploy --env staging --dry-run
+pnpm build:production
+pnpm wrangler deploy --env production --dry-run
+```
+
+The dry-run binding summary should show:
+
+```text
+env.DB (foodie)             D1 Database
+env.DB (foodie-production)  D1 Database
+```
+
+for staging and production respectively.
+
 ## Database
 
 - Database: Cloudflare D1
@@ -40,6 +65,8 @@ This is required because the Astro Cloudflare adapter emits `dist/server/wrangle
 - Migration application: Wrangler D1 migrations from `migrations/`
 
 The app code imports the D1 binding through `cloudflare:workers` and wraps it with Drizzle's D1 driver.
+
+D1 database IDs in `wrangler.toml` are resource identifiers, not secrets. They are fine to commit publicly. Cloudflare API tokens, `.env` files, and private keys must not be committed.
 
 Important files:
 
@@ -61,6 +88,13 @@ Apply migrations to the local D1 database:
 
 ```bash
 pnpm db:migrations:local
+```
+
+The local migration script must target the binding name `DB`, not the database name. If local dev shows `Database setup needed` or writes fail with a missing `recipes` table, run:
+
+```bash
+pnpm db:migrations:local
+pnpm wrangler d1 execute DB --local --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
 ```
 
 Apply migrations to the remote D1 database:
@@ -88,6 +122,15 @@ PWA files:
 - `public/sw.js`
 
 The service worker caches the app shell and static assets only. API routes and form submissions stay network-first by not handling non-GET requests or `/api/*` requests in the service worker.
+
+Mobile-first shell rules:
+
+- Primary phone workflows are Plan, Recipes, Shopping, and Settings.
+- Use bottom navigation on mobile.
+- Respect safe-area insets with `env(safe-area-inset-*)`.
+- Keep touch targets at least about 44px tall.
+- Optimize the phone workflow first; desktop can use the same sections in wider grids.
+- The current page uses section anchors as an intermediate step. When the app is split into real routes, keep `/plan`, `/recipes`, `/shopping`, and `/settings` as the primary navigation model.
 
 Theme and language preferences use a small no-framework client script in `src/pages/index.astro`:
 

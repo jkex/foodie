@@ -91,6 +91,12 @@ The local app runs at:
 http://127.0.0.1:4321/
 ```
 
+If local development shows a database setup warning or recipe writes fail because a table is missing, apply local migrations again:
+
+```bash
+pnpm db:migrations:local
+```
+
 ## Database And Migrations
 
 The app uses Drizzle for typed schema and queries, while Wrangler applies SQL migrations to D1.
@@ -133,6 +139,17 @@ Check Drizzle config:
 pnpm exec drizzle-kit check
 ```
 
+Verify environment-specific Worker bindings before changing deploy settings:
+
+```bash
+pnpm build:staging
+pnpm wrangler deploy --env staging --dry-run
+pnpm build:production
+pnpm wrangler deploy --env production --dry-run
+```
+
+The staging dry run should show `env.DB (foodie)`. The production dry run should show `env.DB (foodie-production)`.
+
 ## Scripts
 
 Common scripts:
@@ -159,6 +176,7 @@ pnpm deploy:production
 - Keep staging and production D1 databases separate.
 - Use `pnpm deploy:staging` and `pnpm deploy:production` instead of calling `wrangler deploy` directly; the scripts build with the correct `CLOUDFLARE_ENV`.
 - Use Tailwind utility classes for UI styling.
+- Treat this as a mobile-first PWA. Preserve manifest/service-worker behavior and bottom mobile navigation unless replacing it with a better mobile app shell.
 - The first version is server-rendered Astro with regular HTML forms and API routes.
 - Do not add React, shadcn/ui, or client-side state unless the feature clearly needs it.
 - Prefer Drizzle for schema and typed query work.
