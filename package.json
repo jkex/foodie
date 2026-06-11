@@ -10,15 +10,20 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "db:generate": "drizzle-kit generate",
     "db:migrations:local": "wrangler d1 migrations apply foodie --local",
     "db:migrations:remote": "wrangler d1 migrations apply foodie --remote"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",
-    "astro": "^6.4.6"
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^6.4.6",
+    "drizzle-orm": "^0.45.2",
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260611.1",
+    "drizzle-kit": "^0.31.10",
     "wrangler": "^4.100.0"
   }
 }

@@ -25,7 +25,17 @@ npm run dev
 
 ## Database
 
-The initial schema is in [migrations/0001_initial.sql](./migrations/0001_initial.sql).
+The app uses Cloudflare D1 for storage, Drizzle ORM for typed schema/query management, and Wrangler D1 migrations for applying SQL migrations.
+
+- Drizzle schema: [src/db/schema.ts](./src/db/schema.ts)
+- Drizzle config: [drizzle.config.ts](./drizzle.config.ts)
+- Initial migration: [migrations/0001_initial.sql](./migrations/0001_initial.sql)
+
+Generate migrations after schema changes:
+
+```bash
+npm run db:generate
+```
 
 For production, create a Cloudflare D1 database, replace `database_id` in [wrangler.toml](./wrangler.toml), then apply remote migrations:
 

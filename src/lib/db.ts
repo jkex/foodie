@@ -1,3 +1,16 @@
+import { and, asc, eq, max, sql } from 'drizzle-orm';
+import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
+import { env } from 'cloudflare:workers';
+import { ingredients, mealPlanItems, mealPlans, recipeIngredients, recipes } from '../db/schema';
+
+type Database = DrizzleD1Database<{
+	ingredients: typeof ingredients;
+	mealPlanItems: typeof mealPlanItems;
+	mealPlans: typeof mealPlans;
+	recipeIngredients: typeof recipeIngredients;
+	recipes: typeof recipes;
+}>;
+
 export type Recipe = {
 	id: number;
 	name: string;
@@ -51,57 +64,62 @@ export type ShoppingListItem = {
 	notes: string | null;
 };
 
-export function getDb(): D1Database {
-	const db = env.DB;
-
-	if (!db) {
+export function getDb(): Database {
+	if (!env.DB) {
 		throw new Error('Missing D1 binding: DB');
 	}
 
-	return db;
+	return drizzle(env.DB, {
+		schema: {
+			ingredients,
+			mealPlanItems,
+			mealPlans,
+			recipeIngredients,
+			recipes,
+		},
+	});
 }
 
-export async function listRecipes(db: D1Database): Promise<Recipe[]> {
-	const result = await db
-		.prepare(
-			`SELECT *
-			 FROM recipes
-			 ORDER BY
-			   last_cooked_at IS NOT NULL,
-			   last_cooked_at ASC,
-			   rotation_index ASC,
-			   id ASC`,
-		)
-		.all<Recipe>();
+export async function listRecipes(db: Database): Promise<Recipe[]> {
+	const rows = await db
+		.select()
+		.from(recipes)
+		.orderBy(sql`${recipes.lastCookedAt} IS NOT NULL`, asc(recipes.lastCookedAt), asc(recipes.rotationIndex), asc(recipes.id));
 
-	return result.results ?? [];
+	return rows.map(toRecipe);
 }
 
-export async function listRecipeIngredients(db: D1Database, recipeId: number): Promise<RecipeIngredient[]> {
-	const result = await db
-		.prepare(
-			`SELECT
-			   ri.id,
-			   ri.recipe_id,
-			   ri.ingredient_id,
-			   i.name,
-			   i.category,
-			   ri.quantity,
-			   ri.unit,
-			   ri.note
-			 FROM recipe_ingredients ri
-			 JOIN ingredients i ON i.id = ri.ingredient_id
-			 WHERE ri.recipe_id = ?
-			 ORDER BY i.category, i.name`,
-		)
-		.bind(recipeId)
-		.all<RecipeIngredient>();
+export async function listRecipeIngredients(db: Database, recipeId: number): Promise<RecipeIngredient[]> {
+	const rows = await db
+		.select({
+			id: recipeIngredients.id,
+			recipeId: recipeIngredients.recipeId,
+			ingredientId: recipeIngredients.ingredientId,
+			name: ingredients.name,
+			category: ingredients.category,
+			quantity: recipeIngredients.quantity,
+			unit: recipeIngredients.unit,
+			note: recipeIngredients.note,
+		})
+		.from(recipeIngredients)
+		.innerJoin(ingredients, eq(ingredients.id, recipeIngredients.ingredientId))
+		.where(eq(recipeIngredients.recipeId, recipeId))
+		.orderBy(asc(ingredients.category), asc(ingredients.name));
 
-	return result.results ?? [];
+	return rows.map((row) => ({
+		id: row.id,
+		recipe_id: row.recipeId,
+		ingredient_id: row.ingredientId,
+		name: row.name,
+		category: row.category,
+		quantity: row.quantity,
+		unit: row.unit,
+		note: row.note,
+	}));
 }
 
 export async function createRecipe(
-	db: D1Database,
+	db: Database,
 	input: {
 		name: string;
 		description: string;
@@ -111,15 +129,18 @@ export async function createRecipe(
 		ingredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>;
 	},
 ): Promise<number> {
-	const maxRotation = await db.prepare('SELECT COALESCE(MAX(rotation_index), 0) AS value FROM recipes').first<{ value: number }>();
-	const recipe = await db
-		.prepare(
-			`INSERT INTO recipes (name, description, instructions, base_servings, default_days, rotation_index)
-			 VALUES (?, ?, ?, ?, ?, ?)
-			 RETURNING id`,
-		)
-		.bind(input.name, input.description, input.instructions, input.baseServings, input.defaultDays, (maxRotation?.value ?? 0) + 1)
-		.first<{ id: number }>();
+	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes);
+	const [recipe] = await db
+		.insert(recipes)
+		.values({
+			name: input.name,
+			description: input.description,
+			instructions: input.instructions,
+			baseServings: input.baseServings,
+			defaultDays: input.defaultDays,
+			rotationIndex: (maxRotation?.value ?? 0) + 1,
+		})
+		.returning({ id: recipes.id });
 
 	if (!recipe) {
 		throw new Error('Failed to create recipe');
@@ -129,92 +150,192 @@ export async function createRecipe(
 	return recipe.id;
 }
 
-export async function deleteRecipe(db: D1Database, recipeId: number): Promise<void> {
-	await db.prepare('DELETE FROM recipes WHERE id = ?').bind(recipeId).run();
+export async function deleteRecipe(db: Database, recipeId: number): Promise<void> {
+	await db.delete(recipes).where(eq(recipes.id, recipeId));
 }
 
 async function replaceRecipeIngredients(
-	db: D1Database,
+	db: Database,
 	recipeId: number,
-	ingredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>,
+	inputIngredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>,
 ): Promise<void> {
-	await db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').bind(recipeId).run();
+	await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
 
-	for (const ingredient of ingredients) {
+	for (const ingredient of inputIngredients) {
 		if (!ingredient.name || ingredient.quantity <= 0) {
 			continue;
 		}
 
 		await db
-			.prepare(
-				`INSERT INTO ingredients (name, category)
-				 VALUES (?, ?)
-				 ON CONFLICT(name) DO UPDATE SET category = excluded.category, updated_at = CURRENT_TIMESTAMP`,
-			)
-			.bind(ingredient.name, ingredient.category || 'Other')
-			.run();
+			.insert(ingredients)
+			.values({
+				name: ingredient.name,
+				category: ingredient.category || 'Other',
+			})
+			.onConflictDoUpdate({
+				target: ingredients.name,
+				set: {
+					category: ingredient.category || 'Other',
+					updatedAt: sql`CURRENT_TIMESTAMP`,
+				},
+			});
 
-		const row = await db.prepare('SELECT id FROM ingredients WHERE name = ?').bind(ingredient.name).first<{ id: number }>();
+		const [row] = await db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.name, ingredient.name)).limit(1);
 		if (!row) {
 			throw new Error(`Failed to find ingredient: ${ingredient.name}`);
 		}
 
-		await db
-			.prepare(
-				`INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit, note)
-				 VALUES (?, ?, ?, ?, ?)`,
-			)
-			.bind(recipeId, row.id, ingredient.quantity, ingredient.unit, ingredient.note)
-			.run();
+		await db.insert(recipeIngredients).values({
+			recipeId,
+			ingredientId: row.id,
+			quantity: ingredient.quantity,
+			unit: ingredient.unit,
+			note: ingredient.note,
+		});
 	}
 }
 
-export async function latestMealPlan(db: D1Database): Promise<MealPlan | null> {
-	return db.prepare('SELECT * FROM meal_plans ORDER BY created_at DESC, id DESC LIMIT 1').first<MealPlan>();
+export async function latestMealPlan(db: Database): Promise<MealPlan | null> {
+	const [row] = await db.select().from(mealPlans).orderBy(sql`${mealPlans.createdAt} DESC`, sql`${mealPlans.id} DESC`).limit(1);
+	return row ? toMealPlan(row) : null;
 }
 
-export async function listMealPlanItems(db: D1Database, mealPlanId: number): Promise<MealPlanItem[]> {
-	const result = await db
-		.prepare(
-			`SELECT
-			   mpi.id,
-			   mpi.meal_plan_id,
-			   mpi.recipe_id,
-			   r.name AS recipe_name,
-			   mpi.start_day_index,
-			   mpi.day_count,
-			   mpi.people_count,
-			   mpi.serving_multiplier
-			 FROM meal_plan_items mpi
-			 JOIN recipes r ON r.id = mpi.recipe_id
-			 WHERE mpi.meal_plan_id = ?
-			 ORDER BY mpi.start_day_index`,
-		)
-		.bind(mealPlanId)
-		.all<MealPlanItem>();
+export async function listMealPlanItems(db: Database, mealPlanId: number): Promise<MealPlanItem[]> {
+	const rows = await db
+		.select({
+			id: mealPlanItems.id,
+			mealPlanId: mealPlanItems.mealPlanId,
+			recipeId: mealPlanItems.recipeId,
+			recipeName: recipes.name,
+			startDayIndex: mealPlanItems.startDayIndex,
+			dayCount: mealPlanItems.dayCount,
+			peopleCount: mealPlanItems.peopleCount,
+			servingMultiplier: mealPlanItems.servingMultiplier,
+		})
+		.from(mealPlanItems)
+		.innerJoin(recipes, eq(recipes.id, mealPlanItems.recipeId))
+		.where(eq(mealPlanItems.mealPlanId, mealPlanId))
+		.orderBy(asc(mealPlanItems.startDayIndex));
 
-	return result.results ?? [];
+	return rows.map((row) => ({
+		id: row.id,
+		meal_plan_id: row.mealPlanId,
+		recipe_id: row.recipeId,
+		recipe_name: row.recipeName,
+		start_day_index: row.startDayIndex,
+		day_count: row.dayCount,
+		people_count: row.peopleCount,
+		serving_multiplier: row.servingMultiplier,
+	}));
 }
 
-export async function shoppingListForPlan(db: D1Database, mealPlanId: number): Promise<ShoppingListItem[]> {
-	const result = await db
-		.prepare(
-			`SELECT
-			   i.name,
-			   i.category,
-			   ri.unit,
-			   SUM(ri.quantity * mpi.serving_multiplier) AS total_quantity,
-			   GROUP_CONCAT(NULLIF(ri.note, ''), '; ') AS notes
-			 FROM meal_plan_items mpi
-			 JOIN recipe_ingredients ri ON ri.recipe_id = mpi.recipe_id
-			 JOIN ingredients i ON i.id = ri.ingredient_id
-			 WHERE mpi.meal_plan_id = ?
-			 GROUP BY LOWER(i.name), i.category, ri.unit
-			 ORDER BY i.category, i.name`,
-		)
-		.bind(mealPlanId)
-		.all<ShoppingListItem>();
+export async function shoppingListForPlan(db: Database, mealPlanId: number): Promise<ShoppingListItem[]> {
+	const totalQuantity = sql<number>`SUM(${recipeIngredients.quantity} * ${mealPlanItems.servingMultiplier})`;
+	const notes = sql<string | null>`GROUP_CONCAT(NULLIF(${recipeIngredients.note}, ''), '; ')`;
 
-	return result.results ?? [];
+	const rows = await db
+		.select({
+			name: ingredients.name,
+			category: ingredients.category,
+			unit: recipeIngredients.unit,
+			total_quantity: totalQuantity,
+			notes,
+		})
+		.from(mealPlanItems)
+		.innerJoin(recipeIngredients, eq(recipeIngredients.recipeId, mealPlanItems.recipeId))
+		.innerJoin(ingredients, eq(ingredients.id, recipeIngredients.ingredientId))
+		.where(eq(mealPlanItems.mealPlanId, mealPlanId))
+		.groupBy(sql`LOWER(${ingredients.name})`, ingredients.category, recipeIngredients.unit)
+		.orderBy(asc(ingredients.category), asc(ingredients.name));
+
+	return rows;
 }
-import { env } from 'cloudflare:workers';
+
+export async function createMealPlan(
+	db: Database,
+	input: { startDate: string; plannedDayCount: number; peopleCount: number },
+): Promise<number> {
+	const [mealPlan] = await db
+		.insert(mealPlans)
+		.values({
+			startDate: input.startDate,
+			plannedDayCount: input.plannedDayCount,
+			peopleCount: input.peopleCount,
+			status: 'draft',
+		})
+		.returning({ id: mealPlans.id });
+
+	if (!mealPlan) {
+		throw new Error('Failed to create meal plan');
+	}
+
+	return mealPlan.id;
+}
+
+export async function addMealPlanItem(
+	db: Database,
+	input: {
+		mealPlanId: number;
+		recipeId: number;
+		startDayIndex: number;
+		dayCount: number;
+		peopleCount: number;
+		servingMultiplier: number;
+	},
+): Promise<void> {
+	await db.insert(mealPlanItems).values(input);
+}
+
+export async function commitMealPlanRotation(db: Database, mealPlanId: number): Promise<void> {
+	const items = await listMealPlanItems(db, mealPlanId);
+	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes);
+	let rotationIndex = maxRotation?.value ?? 0;
+	const cookedAt = new Date().toISOString();
+
+	for (const item of items) {
+		rotationIndex += 1;
+		await db
+			.update(recipes)
+			.set({
+				lastCookedAt: cookedAt,
+				rotationIndex,
+				updatedAt: sql`CURRENT_TIMESTAMP`,
+			})
+			.where(eq(recipes.id, item.recipe_id));
+	}
+
+	await db
+		.update(mealPlans)
+		.set({
+			status: 'accepted',
+			updatedAt: sql`CURRENT_TIMESTAMP`,
+		})
+		.where(and(eq(mealPlans.id, mealPlanId), eq(mealPlans.status, 'draft')));
+}
+
+function toRecipe(row: typeof recipes.$inferSelect): Recipe {
+	return {
+		id: row.id,
+		name: row.name,
+		description: row.description,
+		instructions: row.instructions,
+		base_servings: row.baseServings,
+		default_days: row.defaultDays,
+		last_cooked_at: row.lastCookedAt,
+		rotation_index: row.rotationIndex,
+		created_at: row.createdAt,
+		updated_at: row.updatedAt,
+	};
+}
+
+function toMealPlan(row: typeof mealPlans.$inferSelect): MealPlan {
+	return {
+		id: row.id,
+		start_date: row.startDate,
+		planned_day_count: row.plannedDayCount,
+		people_count: row.peopleCount,
+		status: row.status,
+		created_at: row.createdAt,
+		updated_at: row.updatedAt,
+	};
+}

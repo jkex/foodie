@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getDb, listRecipes } from '../../lib/db';
+import { addMealPlanItem, createMealPlan, getDb, listRecipes } from '../../lib/db';
 import { buildPlan } from '../../lib/plan';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
@@ -10,29 +10,17 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 	const peopleCount = positiveInteger(formData, 'people_count', 2);
 	const recipes = await listRecipes(db);
 	const plan = buildPlan(recipes, plannedDayCount, peopleCount);
-
-	const mealPlan = await db
-		.prepare(
-			`INSERT INTO meal_plans (start_date, planned_day_count, people_count, status)
-			 VALUES (?, ?, ?, 'draft')
-			 RETURNING id`,
-		)
-		.bind(startDate, plannedDayCount, peopleCount)
-		.first<{ id: number }>();
-
-	if (!mealPlan) {
-		throw new Error('Failed to create meal plan');
-	}
+	const mealPlanId = await createMealPlan(db, { startDate, plannedDayCount, peopleCount });
 
 	for (const item of plan) {
-		await db
-			.prepare(
-				`INSERT INTO meal_plan_items
-				   (meal_plan_id, recipe_id, start_day_index, day_count, people_count, serving_multiplier)
-				 VALUES (?, ?, ?, ?, ?, ?)`,
-			)
-			.bind(mealPlan.id, item.recipe.id, item.startDayIndex, item.dayCount, peopleCount, item.servingMultiplier)
-			.run();
+		await addMealPlanItem(db, {
+			mealPlanId,
+			recipeId: item.recipe.id,
+			startDayIndex: item.startDayIndex,
+			dayCount: item.dayCount,
+			peopleCount,
+			servingMultiplier: item.servingMultiplier,
+		});
 	}
 
 	return redirect('/');
