@@ -4,7 +4,7 @@ import { buildPlan } from '../../lib/plan';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
 	const formData = await request.formData();
-	const db = getDb(locals);
+	const db = getDb();
 	const startDate = String(formData.get('start_date') || new Date().toISOString().slice(0, 10));
 	const plannedDayCount = positiveInteger(formData, 'planned_day_count', 7);
 	const peopleCount = positiveInteger(formData, 'people_count', 2);

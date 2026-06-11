@@ -11,8 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "db:migrations:local": "wrangler d1 migrations apply foodie --local",
-    "db:migrations:remote": "wrangler d1 migrations apply foodie --remote",
-    "pages:dev": "npm run build && wrangler pages dev dist --d1 DB=foodie"
+    "db:migrations:remote": "wrangler d1 migrations apply foodie --remote"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",

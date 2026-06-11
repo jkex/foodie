@@ -16,11 +16,11 @@ Run the Astro dev server:
 npm run dev
 ```
 
-The app expects a D1 binding named `DB` for database-backed pages and API routes. For Cloudflare-compatible local testing, apply migrations locally and run Pages dev:
+The app expects a D1 binding named `DB` for database-backed pages and API routes. For Cloudflare-compatible local testing, apply migrations locally and run the dev server:
 
 ```bash
 npm run db:migrations:local
-npm run pages:dev
+npm run dev
 ```
 
 ## Database

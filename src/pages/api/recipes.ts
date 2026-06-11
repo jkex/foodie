@@ -4,7 +4,7 @@ import { createRecipe, deleteRecipe, getDb } from '../../lib/db';
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
 	const formData = await request.formData();
 	const action = String(formData.get('action') ?? 'create');
-	const db = getDb(locals);
+	const db = getDb();
 
 	if (action === 'delete') {
 		const id = Number(formData.get('id'));

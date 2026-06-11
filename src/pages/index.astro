@@ -21,7 +21,7 @@ let shoppingList: ShoppingListItem[] = [];
 let databaseError = '';
 
 try {
-	const db = getDb(Astro.locals);
+	const db = getDb();
 	recipes = await listRecipes(db);
 	ingredientsByRecipe = new Map(await Promise.all(recipes.map(async (recipe) => [recipe.id, await listRecipeIngredients(db, recipe.id)])));
 	mealPlan = await latestMealPlan(db);

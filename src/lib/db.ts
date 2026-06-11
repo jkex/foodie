@@ -51,8 +51,8 @@ export type ShoppingListItem = {
 	notes: string | null;
 };
 
-export function getDb(locals: App.Locals): D1Database {
-	const db = locals.runtime?.env.DB;
+export function getDb(): D1Database {
+	const db = env.DB;
 
 	if (!db) {
 		throw new Error('Missing D1 binding: DB');
@@ -217,3 +217,4 @@ export async function shoppingListForPlan(db: D1Database, mealPlanId: number): P
 
 	return result.results ?? [];
 }
+import { env } from 'cloudflare:workers';
