@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
-  <!-- Rounded brand background (emerald green) -->
-  <rect width="128" height="128" rx="32" fill="#10b981"/>
+  <!-- Rounded brand background (terracotta) -->
+  <rect width="128" height="128" rx="32" fill="#ea580c"/>
   <!-- Chef hat in white -->
   <path fill="#ffffff" d="M64 24c-12 0-21.8 8.8-23.7 20.3C34.7 46 30 51.9 30 59c0 8.3 6.7 15 15 15h38c8.3 0 15-6.7 15-15 0-7.1-4.7-13-10.3-14.7C85.8 32.8 76 24 64 24zm-14 56h28v8H50v-8z"/>
-  <!-- Dynamic leaf accent in dark forest green -->
-  <path fill="#065f46" d="M86 48c-8 0-16 8-20 16-4 8-6 16-4 22 2 6 8 8 14 8 8 0 16-8 20-16 4-8 4-18-10-30zm-8 32c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
+  <!-- Dynamic leaf accent in deep rust -->
+  <path fill="#7c2d12" d="M86 48c-8 0-16 8-20 16-4 8-6 16-4 22 2 6 8 8 14 8 8 0 16-8 20-16 4-8 4-18-10-30zm-8 32c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
 </svg>
