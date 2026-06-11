@@ -40,8 +40,10 @@ This document tracks enhancements that should not complicate the first implement
 - Owned ingredients.
 - Pantry staples.
 - Exclude pantry staples from the shopping list.
+- Add already at home and always at home items to the shopping list so they will not appear there.
 - Low-stock reminders.
 - Inventory expiration dates.
+- Long-term future: Add a feature to take a photo of the fridge/cupboard to show the app what is already available.
 
 ## Import And Export
 
