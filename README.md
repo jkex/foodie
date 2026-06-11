@@ -28,11 +28,13 @@ Cloudflare Workers Builds should be configured with:
 
 ```text
 Production branch: prod
-Build command: pnpm build
+Build command: 
 Deploy command: pnpm deploy:production
 Non-production branch deploy command: pnpm deploy:staging
 Path: /
 ```
+
+Leave the Cloudflare build command empty. The deploy scripts run the correct build internally with `CLOUDFLARE_ENV=staging` or `CLOUDFLARE_ENV=production` before calling Wrangler. This matters because the Astro Cloudflare adapter generates a deploy config during build, and that generated config must contain the correct D1 binding for the target environment.
 
 With this setup:
 
@@ -41,6 +43,8 @@ With this setup:
 - Production changes should normally land in `main` first, then be promoted by merging `main` into `prod`.
 
 Do not run production migrations automatically from branch deploys. Apply D1 migrations deliberately with the scripts below.
+
+Do not add `pages_build_output_dir` to `wrangler.toml`. This app deploys as a Cloudflare Worker with assets through the Astro Cloudflare adapter, not as a Cloudflare Pages project.
 
 ## Cloudflare Resources
 
@@ -130,6 +134,8 @@ Common scripts:
 ```bash
 pnpm dev
 pnpm build
+pnpm build:staging
+pnpm build:production
 pnpm preview
 pnpm db:generate
 pnpm db:migrations:local
@@ -145,6 +151,7 @@ pnpm deploy:production
 - Read [docs/stack.md](./docs/stack.md) before changing framework, package manager, database, styling, or deployment setup.
 - Keep the D1 binding name as `DB`.
 - Keep staging and production D1 databases separate.
+- Use `pnpm deploy:staging` and `pnpm deploy:production` instead of calling `wrangler deploy` directly; the scripts build with the correct `CLOUDFLARE_ENV`.
 - Use Tailwind utility classes for UI styling.
 - The first version is server-rendered Astro with regular HTML forms and API routes.
 - Do not add React, shadcn/ui, or client-side state unless the feature clearly needs it.

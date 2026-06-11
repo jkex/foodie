@@ -15,11 +15,20 @@ Cloudflare Workers Builds should use `prod` as the production branch.
 Cloudflare build settings should use:
 
 ```text
-Build command: pnpm build
+Build command:
 Deploy command: pnpm deploy:production
 Non-production branch deploy command: pnpm deploy:staging
 Path: /
 ```
+
+This project deploys as a Cloudflare Worker with assets. Do not add `pages_build_output_dir` to `wrangler.toml`; that key is for Cloudflare Pages projects and causes Wrangler to validate the generated Worker asset binding incorrectly.
+
+Leave the Cloudflare build command empty because the deploy scripts build internally with the correct environment:
+
+- `pnpm deploy:staging` runs `CLOUDFLARE_ENV=staging astro build` before deploy.
+- `pnpm deploy:production` runs `CLOUDFLARE_ENV=production astro build` before deploy.
+
+This is required because the Astro Cloudflare adapter emits `dist/server/wrangler.json` during build, and Wrangler deploys using that generated config.
 
 ## Database
 
