@@ -43,11 +43,18 @@ function formatQuantity(value: number) {
 	return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-const panelClass = 'rounded-lg border border-[#dfe5dc] bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5';
-const inputClass = 'w-full rounded-md border border-[#c9d1c7] bg-white px-3 py-2 font-normal text-[#1f2522] dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100';
-const labelClass = 'grid gap-1.5 font-bold';
-const buttonClass = 'min-h-11 cursor-pointer rounded-md bg-[#1f5f4a] px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50';
-const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px-4 py-3 font-bold text-white';
+const panelClass = 'rounded-xl border border-neutral-200 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 sm:p-5';
+const inputClass =
+	'h-10 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
+const textareaClass =
+	'w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm font-normal text-neutral-950 shadow-xs outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-950/10 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-white/10';
+const labelClass = 'grid gap-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200';
+const buttonClass =
+	'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-neutral-800 disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200';
+const secondaryButtonClass =
+	'inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-950 shadow-xs transition hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:bg-neutral-900';
+const mutedTextClass = 'text-sm text-neutral-500 dark:text-neutral-400';
+const rowClass = 'rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-900/50';
 ---
 
 <html lang={locale}>
@@ -58,7 +65,7 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 		<link rel="manifest" href="/manifest.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="theme-color" content="#1f5f4a" />
+		<meta name="theme-color" content="#0a0a0a" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 		<meta name="apple-mobile-web-app-title" content="Foodie" />
@@ -69,13 +76,16 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 			document.documentElement.classList.toggle('dark', storedTheme === 'dark' || (storedTheme === 'system' && prefersDark));
 		</script>
 	</head>
-	<body class="m-0 bg-[#f6f7f2] font-sans text-[#1f2522] dark:bg-slate-950 dark:text-slate-100">
-		<header class="mx-auto flex max-w-[1180px] flex-col gap-4 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 md:flex-row md:items-start md:justify-between md:px-8">
-			<div>
-				<p class="mb-2 font-extrabold text-[#1f5f4a] uppercase">Foodie</p>
-				<h1 data-i18n="appTitle" class="m-0 max-w-3xl text-3xl leading-none font-bold sm:text-4xl md:text-6xl">{t('appTitle')}</h1>
+	<body class="m-0 bg-neutral-50 font-sans text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
+		<header class="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 md:flex-row md:items-end md:justify-between md:px-8">
+			<div class="grid gap-2">
+				<div class="flex items-center gap-2">
+					<span class="grid h-8 w-8 place-items-center rounded-lg bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">F</span>
+					<p class="m-0 text-sm font-semibold text-neutral-600 dark:text-neutral-400">Foodie</p>
+				</div>
+				<h1 data-i18n="appTitle" class="m-0 max-w-3xl text-2xl leading-tight font-semibold tracking-tight sm:text-3xl md:text-4xl">{t('appTitle')}</h1>
 			</div>
-			<div id="settings" class="grid scroll-mt-4 gap-3 rounded-lg border border-[#dfe5dc] bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900 md:min-w-56">
+			<div id="settings" class="grid scroll-mt-4 grid-cols-2 gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:min-w-80">
 				<label class="grid gap-1 font-bold">
 					<span data-i18n="language">{t('language')}</span>
 					<select id="locale-select" class={inputClass}>
@@ -94,18 +104,21 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 			</div>
 		</header>
 
-		<main class="mx-auto max-w-[1180px] p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8">
+		<main class="mx-auto max-w-6xl p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8">
 			{databaseError && (
-				<section class="mb-4 rounded-lg border border-[#e3c567] bg-[#fff7e0] p-5 dark:border-amber-600 dark:bg-amber-950">
-					<h2 data-i18n="databaseSetupNeeded" class="mt-0 text-2xl font-bold">{t('databaseSetupNeeded')}</h2>
+				<section class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+					<h2 data-i18n="databaseSetupNeeded" class="mt-0 text-base font-semibold">{t('databaseSetupNeeded')}</h2>
 					<p class="mt-0">{databaseError}</p>
 					<p><span data-i18n="databaseSetupHelp">{t('databaseSetupHelp')}</span> <code>DB</code> <span data-i18n="beforeUsingApp">{t('beforeUsingApp')}</span></p>
 				</section>
 			)}
 
-			<section id="plan" class="my-4 grid scroll-mt-4 items-start gap-4 md:grid-cols-2">
+			<section id="plan" class="my-4 grid scroll-mt-4 items-start gap-4 lg:grid-cols-[0.9fr_1.1fr]">
 				<div class={panelClass}>
-					<h2 data-i18n="generatePlan" class="mt-0 text-2xl font-bold">{t('generatePlan')}</h2>
+					<div class="mb-4 flex items-center justify-between gap-3">
+						<h2 data-i18n="generatePlan" class="m-0 text-lg font-semibold tracking-tight">{t('generatePlan')}</h2>
+						<span class="rounded-full border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">7d</span>
+					</div>
 					<form method="post" action="/api/plans" class="grid gap-4">
 						<label class={labelClass}>
 							<span data-i18n="startDate">{t('startDate')}</span>
@@ -124,18 +137,23 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 				</div>
 
 				<div class={panelClass}>
-					<h2 data-i18n="latestPlan" class="mt-0 text-2xl font-bold">{t('latestPlan')}</h2>
+					<div class="mb-4 flex items-center justify-between gap-3">
+						<h2 data-i18n="latestPlan" class="m-0 text-lg font-semibold tracking-tight">{t('latestPlan')}</h2>
+						{mealPlan && <span class="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">{mealPlan.status}</span>}
+					</div>
 					{mealPlan ? (
 						<>
-							<p class="mt-0">
+							<p class={`${mutedTextClass} mt-0`}>
 								<strong>{mealPlan.planned_day_count}</strong> <span data-i18n="cookedFoodDaysFor">{t('cookedFoodDaysFor')}</span> <strong>{mealPlan.people_count}</strong> <span data-i18n="peopleStarting">{t('peopleStarting')}</span> <strong>{mealPlan.start_date}</strong>.
 							</p>
 							<ol class="grid list-none gap-3 p-0">
 								{mealPlanItems.map((item) => (
-									<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
-										<span class="block text-[#5f6f68] dark:text-slate-400"><span data-i18n="day">{t('day')}</span> {item.start_day_index + 1}</span>
-										<strong>{item.recipe_name}</strong>
-										<small class="block text-[#5f6f68] dark:text-slate-400">{item.day_count} <span data-i18n={item.day_count === 1 ? 'daySingular' : 'dayPlural'}>{item.day_count === 1 ? t('daySingular') : t('dayPlural')}</span>, {item.serving_multiplier.toFixed(2)}x <span data-i18n="ingredientsMultiplier">{t('ingredientsMultiplier')}</span></small>
+									<li class={`${rowClass} grid grid-cols-[auto_1fr] gap-3`}>
+										<span class="grid h-9 w-9 place-items-center rounded-md bg-white text-sm font-semibold shadow-xs dark:bg-neutral-950"><span data-i18n="day" class="sr-only">{t('day')}</span>{item.start_day_index + 1}</span>
+										<span>
+											<strong class="block text-sm font-medium">{item.recipe_name}</strong>
+											<small class={mutedTextClass}>{item.day_count} <span data-i18n={item.day_count === 1 ? 'daySingular' : 'dayPlural'}>{item.day_count === 1 ? t('daySingular') : t('dayPlural')}</span>, {item.serving_multiplier.toFixed(2)}x <span data-i18n="ingredientsMultiplier">{t('ingredientsMultiplier')}</span></small>
+										</span>
 									</li>
 								))}
 							</ol>
@@ -147,13 +165,16 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 							)}
 						</>
 					) : (
-						<p data-i18n="noPlan" class="mt-0">{t('noPlan')}</p>
+						<p data-i18n="noPlan" class={`${mutedTextClass} mt-0`}>{t('noPlan')}</p>
 					)}
 				</div>
 			</section>
 
 			<section id="recipes" class={`${panelClass} scroll-mt-4`}>
-				<h2 data-i18n="addRecipe" class="mt-0 text-2xl font-bold">{t('addRecipe')}</h2>
+				<div class="mb-4 flex items-center justify-between gap-3">
+					<h2 data-i18n="addRecipe" class="m-0 text-lg font-semibold tracking-tight">{t('addRecipe')}</h2>
+					<span class="rounded-full bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">{recipes.length}</span>
+				</div>
 				<form method="post" action="/api/recipes" class="grid gap-4 md:grid-cols-3">
 					<label class={labelClass}>
 						<span data-i18n="name">{t('name')}</span>
@@ -173,11 +194,11 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 					</label>
 					<label class={`${labelClass} md:col-span-3`}>
 						<span data-i18n="instructions">{t('instructions')}</span>
-						<textarea data-i18n-placeholder="instructionsPlaceholder" class={inputClass} name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}></textarea>
+						<textarea data-i18n-placeholder="instructionsPlaceholder" class={textareaClass} name="instructions" rows="4" placeholder={t('instructionsPlaceholder')}></textarea>
 					</label>
 					<label class={`${labelClass} md:col-span-3`}>
 						<span data-i18n="ingredients">{t('ingredients')}</span>
-						<textarea data-i18n-placeholder="ingredientsPlaceholder" class={inputClass} name="ingredients" rows="6" placeholder={t('ingredientsPlaceholder')}></textarea>
+						<textarea data-i18n-placeholder="ingredientsPlaceholder" class={textareaClass} name="ingredients" rows="6" placeholder={t('ingredientsPlaceholder')}></textarea>
 					</label>
 					<button data-i18n="saveRecipe" class={buttonClass} type="submit" disabled={Boolean(databaseError)}>{t('saveRecipe')}</button>
 				</form>
@@ -185,17 +206,17 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 
 			<section class="my-4 grid items-start gap-4 md:grid-cols-2">
 				<div class={panelClass}>
-					<h2 data-i18n="recipes" class="mt-0 text-2xl font-bold">{t('recipes')}</h2>
+					<h2 data-i18n="recipes" class="mt-0 text-lg font-semibold tracking-tight">{t('recipes')}</h2>
 					{recipes.length > 0 ? (
 						<div class="grid gap-3">
 							{recipes.map((recipe) => (
-								<article class="grid gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
+								<article class={rowClass}>
 									<div>
-										<h3 class="mt-0 text-xl font-bold">{recipe.name}</h3>
-										<p class="mt-0">{recipe.description || t('noDescription')}</p>
-										<small class="block text-[#5f6f68] dark:text-slate-400">{recipe.base_servings} <span data-i18n="baseServingsUsually">{t('baseServingsUsually')}</span> {recipe.default_days} <span data-i18n={recipe.default_days === 1 ? 'daySingular' : 'dayPlural'}>{recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}</span></small>
+										<h3 class="mt-0 text-base font-medium">{recipe.name}</h3>
+										<p class={`${mutedTextClass} mt-0`}>{recipe.description || t('noDescription')}</p>
+										<small class={mutedTextClass}>{recipe.base_servings} <span data-i18n="baseServingsUsually">{t('baseServingsUsually')}</span> {recipe.default_days} <span data-i18n={recipe.default_days === 1 ? 'daySingular' : 'dayPlural'}>{recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}</span></small>
 									</div>
-									<ul>
+									<ul class="my-3 grid gap-1 pl-5 text-sm text-neutral-700 dark:text-neutral-300">
 										{(ingredientsByRecipe.get(recipe.id) ?? []).map((ingredient) => (
 											<li>{ingredient.quantity} {ingredient.unit} {ingredient.name}</li>
 										))}
@@ -214,15 +235,15 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 				</div>
 
 				<div id="shopping" class={`${panelClass} scroll-mt-4`}>
-					<h2 data-i18n="shoppingList" class="mt-0 text-2xl font-bold">{t('shoppingList')}</h2>
+					<h2 data-i18n="shoppingList" class="mt-0 text-lg font-semibold tracking-tight">{t('shoppingList')}</h2>
 					{shoppingList.length > 0 ? (
 						<ul class="grid list-none gap-3 p-0">
 							{shoppingList.map((item) => (
-								<li class="flex items-center gap-3 rounded-lg border border-[#e0e6df] p-3 dark:border-slate-700">
-									<input type="checkbox" />
+								<li class={`${rowClass} flex items-center gap-3`}>
+									<input type="checkbox" class="h-4 w-4 rounded border-neutral-300 accent-neutral-950 dark:accent-neutral-50" />
 									<span>
 										<strong>{formatQuantity(item.total_quantity)} {item.unit}</strong> {item.name}
-										<small class="block text-[#5f6f68] dark:text-slate-400">{item.category}{item.notes ? ` - ${item.notes}` : ''}</small>
+										<small class={mutedTextClass}>{item.category}{item.notes ? ` - ${item.notes}` : ''}</small>
 									</span>
 								</li>
 							))}
@@ -233,22 +254,22 @@ const secondaryButtonClass = 'min-h-11 cursor-pointer rounded-md bg-[#5f342e] px
 				</div>
 			</section>
 		</main>
-		<nav class="fixed inset-x-0 bottom-0 z-20 border-t border-[#dfe5dc] bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 md:hidden" aria-label="Primary">
+		<nav class="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95 md:hidden" aria-label="Primary">
 			<div class="mx-auto grid max-w-lg grid-cols-4 gap-1">
-				<a href="#plan" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
-					<span class="block text-lg leading-none">+</span>
+				<a href="#plan" class="rounded-md px-2 py-2 text-center text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900">
+					<span class="block text-base leading-none">01</span>
 					<span data-i18n="planNav">{t('planNav')}</span>
 				</a>
-				<a href="#recipes" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
-					<span class="block text-lg leading-none">=</span>
+				<a href="#recipes" class="rounded-md px-2 py-2 text-center text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900">
+					<span class="block text-base leading-none">02</span>
 					<span data-i18n="recipesNav">{t('recipesNav')}</span>
 				</a>
-				<a href="#shopping" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
-					<span class="block text-lg leading-none">[]</span>
+				<a href="#shopping" class="rounded-md px-2 py-2 text-center text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900">
+					<span class="block text-base leading-none">03</span>
 					<span data-i18n="shoppingNav">{t('shoppingNav')}</span>
 				</a>
-				<a href="#settings" class="rounded-md px-2 py-2 text-center text-xs font-bold text-[#1f5f4a] dark:text-emerald-300">
-					<span class="block text-lg leading-none">...</span>
+				<a href="#settings" class="rounded-md px-2 py-2 text-center text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-900">
+					<span class="block text-base leading-none">04</span>
 					<span data-i18n="settingsNav">{t('settingsNav')}</span>
 				</a>
 			</div>
