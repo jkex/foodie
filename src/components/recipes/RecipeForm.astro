@@ -8,7 +8,11 @@ import Input from '../ui/Input.astro';
 import Textarea from '../ui/Textarea.astro';
 import IngredientRow from './IngredientRow.astro';
 
-const { recipe, ingredients = [], disabled = false } = Astro.props as {
+const {
+	recipe,
+	ingredients = [],
+	disabled = false,
+} = Astro.props as {
 	recipe?: Recipe;
 	ingredients?: RecipeIngredient[];
 	disabled?: boolean;
@@ -26,7 +30,15 @@ const isEdit = Boolean(recipe);
 			<Input name="name" required placeholder={t('recipeNamePlaceholder')} value={recipe?.name ?? ''} disabled={disabled} />
 		</Field>
 		<Field label={t('baseServings')}>
-			<Input type="number" name="base_servings" value={String(recipe?.base_servings ?? 2)} min="1" step="0.5" required disabled={disabled} />
+			<Input
+				type="number"
+				name="base_servings"
+				value={String(recipe?.base_servings ?? 2)}
+				min="1"
+				step="0.5"
+				required
+				disabled={disabled}
+			/>
 		</Field>
 		<Field label={t('defaultDays')}>
 			<Input type="number" name="default_days" value={String(recipe?.default_days ?? 1)} min="1" max="7" required disabled={disabled} />
@@ -38,26 +50,28 @@ const isEdit = Boolean(recipe);
 	</Field>
 
 	<Field label={t('instructions')}>
-		<Textarea name="instructions" rows="4" placeholder={t('instructionsPlaceholder')} disabled={disabled}>{recipe?.instructions ?? ''}</Textarea>
+		<Textarea name="instructions" rows="4" placeholder={t('instructionsPlaceholder')} disabled={disabled}
+			>{recipe?.instructions ?? ''}</Textarea
+		>
 	</Field>
 
 	<div class="grid gap-2">
 		<span class="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t('ingredients')}</span>
 		<div class="grid gap-2" data-ingredient-rows>
-			{ingredients.map((ingredient) => (
-				<IngredientRow ingredient={ingredient} disabled={disabled} />
-			))}
+			{ingredients.map((ingredient) => <IngredientRow ingredient={ingredient} disabled={disabled} />)}
 			{ingredients.length === 0 && <IngredientRow disabled={disabled} />}
 		</div>
 		<template data-ingredient-template>
 			<IngredientRow disabled={disabled} />
 		</template>
-		{!disabled && (
-			<Button variant="secondary" type="button" data-add-ingredient class="w-fit">
-				<Plus size={16} strokeWidth={2} />
-				{t('addIngredient')}
-			</Button>
-		)}
+		{
+			!disabled && (
+				<Button variant="secondary" type="button" data-add-ingredient class="w-fit">
+					<Plus size={16} stroke-width={2} />
+					{t('addIngredient')}
+				</Button>
+			)
+		}
 	</div>
 
 	<div>

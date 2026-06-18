@@ -1,5 +1,5 @@
-const CACHE_NAME = 'foodie-app-v1';
-const APP_SHELL = ['/', '/favicon.svg', '/favicon.ico', '/manifest.webmanifest'];
+const CACHE_NAME = 'foodie-static-v3';
+const APP_SHELL = ['/favicon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -19,7 +19,13 @@ self.addEventListener('fetch', (event) => {
 	const request = event.request;
 	const url = new URL(request.url);
 
-	if (request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+	const isStaticAsset =
+		url.origin === self.location.origin &&
+		(url.pathname.startsWith('/_astro/') ||
+			url.pathname === '/favicon.svg' ||
+			url.pathname === '/manifest.webmanifest');
+
+	if (request.method !== 'GET' || !isStaticAsset) {
 		return;
 	}
 

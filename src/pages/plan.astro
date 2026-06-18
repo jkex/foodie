@@ -1,22 +1,25 @@
 ---
-import { ChevronDown, SlidersHorizontal } from '@lucide/astro';
+import { CalendarRange, ChevronDown, Sparkles, SlidersHorizontal, WandSparkles } from '@lucide/astro';
 import PageHeader from '../components/PageHeader.astro';
 import Alert from '../components/ui/Alert.astro';
 import Badge from '../components/ui/Badge.astro';
 import Button from '../components/ui/Button.astro';
 import EmptyState from '../components/ui/EmptyState.astro';
 import Field from '../components/ui/Field.astro';
+import InfoHint from '../components/ui/InfoHint.astro';
 import Input from '../components/ui/Input.astro';
 import Panel from '../components/ui/Panel.astro';
 import AppLayout from '../layouts/AppLayout.astro';
+import { getAiSettings } from '../lib/ai';
 import { getDb, listMealPlanItems, listRecipes, type MealPlan, type MealPlanItem, type Recipe } from '../lib/db';
-import { formatPlanDay, useTranslations } from '../lib/i18n';
+import { useTranslations } from '../lib/i18n';
 import { translateRecipeName } from '../lib/preferences';
 import { ensureWeeklyPlan } from '../lib/plan';
 
 let recipes: Recipe[] = [];
 let mealPlan: MealPlan | null = null;
 let mealPlanItems: MealPlanItem[] = [];
+let aiConfigured = false;
 let databaseError = '';
 
 try {
@@ -26,98 +29,277 @@ try {
 	if (mealPlan) {
 		mealPlanItems = await listMealPlanItems(db, Astro.locals.userId, mealPlan.id);
 	}
+	aiConfigured = (await getAiSettings(db, Astro.locals.userId)).providers.length > 0;
 } catch (error) {
 	databaseError = error instanceof Error ? error.message : 'Unknown database error';
 }
 
+const aiError = Astro.url.searchParams.get('ai_error');
+
 const { locale, t } = useTranslations(Astro);
+const intlLocale = locale === 'de' ? 'de-DE' : 'en-GB';
 const today = new Date().toISOString().slice(0, 10);
 const hasPlan = Boolean(mealPlan);
+
+type DayCell = {
+	dayIndex: number;
+	weekday: string;
+	dayNum: string;
+	item: MealPlanItem | null;
+	isStart: boolean;
+};
+type WeekBlock = { title: string; range: string; days: DayCell[] };
+
+const weekBlocks: WeekBlock[] = [];
+let dateRange = '';
+let distinctRecipes = 0;
+
+if (mealPlan) {
+	const planStart = new Date(`${mealPlan.start_date}T00:00:00`);
+	const weekdayFmt = new Intl.DateTimeFormat(intlLocale, { weekday: 'short' });
+	const rangeFmt = new Intl.DateTimeFormat(intlLocale, { day: 'numeric', month: 'short' });
+
+	const cells: DayCell[] = [];
+	for (let d = 0; d < mealPlan.planned_day_count; d++) {
+		const date = new Date(planStart);
+		date.setDate(date.getDate() + d);
+		const item = mealPlanItems.find((it) => d >= it.start_day_index && d < it.start_day_index + it.day_count) ?? null;
+		cells.push({
+			dayIndex: d,
+			weekday: weekdayFmt.format(date),
+			dayNum: String(date.getDate()),
+			item,
+			isStart: item ? item.start_day_index === d : false,
+		});
+	}
+
+	for (let i = 0; i < cells.length; i += 7) {
+		const slice = cells.slice(i, i + 7);
+		const weekIndex = i / 7;
+		const first = new Date(planStart);
+		first.setDate(first.getDate() + slice[0].dayIndex);
+		const last = new Date(planStart);
+		last.setDate(last.getDate() + slice[slice.length - 1].dayIndex);
+		const title = weekIndex === 0 ? t('thisWeek') : weekIndex === 1 ? t('nextWeek') : `${t('weekLabel')} ${weekIndex + 1}`;
+		weekBlocks.push({ title, range: `${rangeFmt.format(first)} – ${rangeFmt.format(last)}`, days: slice });
+	}
+
+	const endDate = new Date(planStart);
+	endDate.setDate(endDate.getDate() + mealPlan.planned_day_count - 1);
+	dateRange = `${rangeFmt.format(planStart)} – ${rangeFmt.format(endDate)}`;
+	distinctRecipes = new Set(mealPlanItems.map((it) => it.recipe_id)).size;
+}
 ---
 
 <AppLayout active="plan" title={t('planNav')}>
-	<section class="grid gap-4">
-		<PageHeader title={t('planNav')} subtitle={t('appTitle')} />
-
-		{databaseError && (
-			<Alert title={t('databaseSetupNeeded')}>
-				<p class="mt-0 mb-1">{databaseError}</p>
-				<p class="m-0">{t('databaseSetupHelp')} <code>DB</code> {t('beforeUsingApp')}</p>
-			</Alert>
-		)}
-
-		{mealPlan ? (
-			<Panel>
-				<div class="mb-4 flex items-center justify-between gap-3">
-					<h2 class="m-0 text-lg font-semibold tracking-tight">{t('latestPlan')}</h2>
-					<Badge tone={mealPlan.status === 'draft' ? 'amber' : 'accent'}>
-						{mealPlan.status === 'draft' ? t('draftBadge') : t('acceptedBadge')}
-					</Badge>
-				</div>
-				<p class="mt-0 text-sm text-neutral-500 dark:text-neutral-400">
-					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.planned_day_count}</strong> {t('cookedFoodDaysFor')}{' '}
-					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.people_count}</strong> {t('peopleStarting')}{' '}
-					<strong class="text-neutral-900 dark:text-neutral-100">{mealPlan.start_date}</strong>.
-				</p>
-				<ol class="grid list-none gap-2.5 p-0">
-					{mealPlanItems.map((item) => (
-						<li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
-							<span class="grid min-w-16 place-items-center rounded-lg bg-white px-2 py-1.5 text-center text-xs font-semibold text-emerald-700 shadow-xs dark:bg-neutral-900 dark:text-emerald-400">
-								{formatPlanDay(locale, mealPlan!.start_date, item.start_day_index)}
-							</span>
-							<span>
-								<strong class="block text-sm font-semibold">{translateRecipeName(locale, item.recipe_name)}</strong>
-								<small class="text-xs text-neutral-500 dark:text-neutral-400">
-									{item.day_count} {item.day_count === 1 ? t('daySingular') : t('dayPlural')}, {item.serving_multiplier.toFixed(2)}x {t('ingredientsMultiplier')}
-								</small>
-							</span>
-						</li>
-					))}
-				</ol>
-				{mealPlan.status === 'draft' && (
-					<div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
-						<form method="post" action="/api/plans/commit" class="contents">
-							<input type="hidden" name="meal_plan_id" value={mealPlan.id} />
-							<Button>{t('acceptPlan')}</Button>
-						</form>
-						<Button variant="secondary" href="/plan/edit">
-							<SlidersHorizontal size={16} strokeWidth={2} />
-							{t('adjustPlan')}
-						</Button>
-					</div>
-				)}
-			</Panel>
-		) : (
-			!databaseError && (
-				<EmptyState title={t('noPlan')} description={recipes.length === 0 ? t('addRecipesFirst') : t('planEmptyHelp')}>
-					{recipes.length === 0 && (
-						<Button variant="secondary" href="/recipes/new">{t('newRecipe')}</Button>
-					)}
-				</EmptyState>
+	<section class="grid gap-5">
+		{
+			databaseError && (
+				<Alert title={t('databaseSetupNeeded')}>
+					<p class="mt-0 mb-1">{databaseError}</p>
+					<p class="m-0">
+						{t('databaseSetupHelp')} <code>DB</code> {t('beforeUsingApp')}
+					</p>
+				</Alert>
 			)
-		)}
+		}
 
-		<Panel>
-			<details open={!hasPlan}>
-				<summary class="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
-					<h2 class="m-0 text-lg font-semibold tracking-tight">{hasPlan ? t('generateNewPlan') : t('generatePlan')}</h2>
-					<ChevronDown size={18} strokeWidth={2} class="text-neutral-400 transition" />
-				</summary>
-				<form method="post" action="/api/plans" class="mt-4 grid gap-4 sm:grid-cols-3">
-					<Field label={t('startDate')}>
-						<Input type="date" name="start_date" value={today} required />
-					</Field>
-					<Field label={t('cookedFoodDays')}>
-						<Input type="number" name="planned_day_count" value="5" min="1" max="14" required />
-					</Field>
-					<Field label={t('people')}>
-						<Input type="number" name="people_count" value="2" min="1" max="20" required />
-					</Field>
-					<div class="sm:col-span-3">
-						<Button disabled={Boolean(databaseError) || recipes.length === 0}>{t('generateDraft')}</Button>
+		{
+			aiError && (
+				<Alert title={t('aiErrorTitle')}>
+					<p class="m-0">{aiError}</p>
+				</Alert>
+			)
+		}
+
+		{
+			mealPlan ? (
+				<>
+					<div class="animate-rise relative overflow-hidden rounded-3xl border border-primary-200/70 bg-gradient-to-br from-warning-50 via-primary-50 to-warning-100 p-6 shadow-sm sm:p-7 dark:border-primary-950/60 dark:from-neutral-900 dark:via-neutral-900 dark:to-primary-950/30">
+						<div
+							aria-hidden="true"
+							class="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full bg-primary-300/30 blur-3xl dark:bg-primary-500/10"
+						/>
+						<div class="relative grid gap-4">
+							<div class="flex flex-wrap items-center gap-2">
+								<span class="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-primary-700 shadow-xs backdrop-blur dark:bg-neutral-950/60 dark:text-primary-300">
+									<Sparkles size={13} stroke-width={2.5} />
+									{mealPlan.status === 'draft' ? t('planAutoBadge') : t('acceptedBadge')}
+								</span>
+								{mealPlan.status === 'draft' && (
+									<InfoHint label={t('moreInfo')} align="left">
+										{t('infoAutoPlanned')}
+									</InfoHint>
+								)}
+							</div>
+							<div class="grid gap-1.5">
+								<h1 class="m-0 text-2xl font-semibold tracking-tight sm:text-3xl">{t('planHeroTitle')}</h1>
+								<p class="m-0 text-sm text-neutral-600 dark:text-neutral-300">{t('planHeroSubtitle')}</p>
+							</div>
+							<dl class="m-0 flex flex-wrap gap-2.5">
+								<div class="flex items-center gap-2 rounded-2xl bg-white/70 px-3.5 py-2 shadow-xs backdrop-blur dark:bg-neutral-950/50">
+									<CalendarRange size={18} stroke-width={2} class="text-primary-600 dark:text-primary-400" />
+									<div class="leading-tight">
+										<dt class="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">{dateRange}</dt>
+										<dd class="m-0 text-sm font-semibold">
+											{mealPlan.planned_day_count} {t('statCookingDays')}
+										</dd>
+									</div>
+								</div>
+								<div class="flex items-center gap-2 rounded-2xl bg-white/70 px-3.5 py-2 shadow-xs backdrop-blur dark:bg-neutral-950/50">
+									<div class="leading-tight">
+										<dt class="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">{t('statForPeople')}</dt>
+										<dd class="m-0 text-sm font-semibold">{mealPlan.people_count}</dd>
+									</div>
+								</div>
+								<div class="flex items-center gap-2 rounded-2xl bg-white/70 px-3.5 py-2 shadow-xs backdrop-blur dark:bg-neutral-950/50">
+									<div class="leading-tight">
+										<dt class="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">{t('statInRotation')}</dt>
+										<dd class="m-0 text-sm font-semibold">{distinctRecipes}</dd>
+									</div>
+								</div>
+							</dl>
+							{mealPlan.status === 'draft' && (
+								<div class="mt-1 flex flex-wrap items-center gap-2">
+									<form method="post" action="/api/plans/commit" class="contents">
+										<input type="hidden" name="meal_plan_id" value={mealPlan.id} />
+										<Button>{t('acceptPlan')}</Button>
+									</form>
+									<InfoHint label={t('moreInfo')} align="left" placement="top">
+										{t('infoAcceptPlan')}
+									</InfoHint>
+									<Button variant="secondary" href="/plan/edit">
+										<SlidersHorizontal size={16} stroke-width={2} />
+										{t('adjustPlan')}
+									</Button>
+									{aiConfigured && (
+										<>
+											<form method="post" action="/api/plans/ai" class="contents">
+												<Button variant="secondary">
+													<WandSparkles size={16} stroke-width={2} />
+													{t('smartMix')}
+												</Button>
+											</form>
+											<InfoHint label={t('moreInfo')} align="right" placement="top">
+												{t('infoSmartMix')}
+											</InfoHint>
+										</>
+									)}
+								</div>
+							)}
+							{mealPlan.status === 'draft' && !aiConfigured && (
+								<a
+									href="/settings"
+									class="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary-700/80 no-underline transition hover:text-primary-700 dark:text-primary-400/80 dark:hover:text-primary-300"
+								>
+									<WandSparkles size={13} stroke-width={2} />
+									{t('smartMixHint')}
+								</a>
+							)}
+						</div>
 					</div>
-				</form>
-			</details>
-		</Panel>
+
+					{weekBlocks.map((week) => (
+						<section class="grid gap-3">
+							<div class="flex items-baseline justify-between gap-3 px-1">
+								<h2 class="m-0 text-lg font-semibold tracking-tight">{week.title}</h2>
+								<span class="text-sm text-neutral-500 dark:text-neutral-400">{week.range}</span>
+							</div>
+							<ol class="grid list-none gap-2.5 p-0 sm:grid-cols-2">
+								{week.days.map((day) => (
+									<li
+										class="animate-rise relative flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white p-3 shadow-xs transition hover:z-20 hover:-translate-y-0.5 hover:shadow-md focus-within:z-20 dark:border-neutral-800 dark:bg-neutral-900"
+										style={`animation-delay:${Math.min(day.dayIndex * 35 + 80, 700)}ms`}
+									>
+										<div
+											class:list={[
+												'grid h-14 w-14 shrink-0 place-items-center rounded-xl text-center leading-none',
+												day.isStart
+													? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-primary-950'
+													: 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400',
+											]}
+										>
+											<span class="text-[10px] font-semibold tracking-wide uppercase opacity-80">{day.weekday}</span>
+											<span class="text-lg font-bold">{day.dayNum}</span>
+										</div>
+										<div class="min-w-0 flex-1">
+											{day.item ? (
+												<>
+													<strong
+														class:list={[
+															'block truncate text-sm font-semibold',
+															day.isStart ? '' : 'text-neutral-500 dark:text-neutral-400',
+														]}
+													>
+														{translateRecipeName(locale, day.item.recipe_name)}
+													</strong>
+													{day.isStart ? (
+														<small class="inline-flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400">
+															<span>
+																{day.item.serving_multiplier.toFixed(2)}x {t('ingredientsMultiplier')}
+															</span>
+															{day.dayIndex === 0 && (
+																<InfoHint label={t('moreInfo')} align="left">
+																	{t('infoServingMultiplier')}
+																</InfoHint>
+															)}
+														</small>
+													) : (
+														<Badge tone="neutral" class="mt-0.5">
+															{t('leftoversBadge')}
+														</Badge>
+													)}
+												</>
+											) : (
+												<span class="text-sm text-neutral-400 dark:text-neutral-500">{t('freeDay')}</span>
+											)}
+										</div>
+									</li>
+								))}
+							</ol>
+						</section>
+					))}
+				</>
+			) : (
+				!databaseError && (
+					<>
+						<PageHeader title={t('planHeroTitle')} subtitle={t('appTitle')} />
+						<EmptyState title={t('noPlan')} description={recipes.length === 0 ? t('planAutoHelp') : t('planEmptyHelp')}>
+							{recipes.length === 0 && <Button href="/recipes/new">{t('newRecipe')}</Button>}
+						</EmptyState>
+					</>
+				)
+			)
+		}
+
+		{
+			!databaseError && recipes.length > 0 && (
+				<Panel>
+					<details open={!hasPlan}>
+						<summary class="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+							<h2 class="m-0 text-base font-semibold tracking-tight">{hasPlan ? t('customizePlan') : t('generatePlan')}</h2>
+							<ChevronDown size={18} stroke-width={2} class="text-neutral-400 transition" />
+						</summary>
+						<form method="post" action="/api/plans" class="mt-4 grid gap-4 sm:grid-cols-3">
+							<Field label={t('startDate')}>
+								<Input type="date" name="start_date" value={today} required />
+							</Field>
+							<Field label={t('cookedFoodDays')}>
+								<InfoHint slot="hint" label={t('moreInfo')} align="left">
+									{t('infoCookedFoodDays')}
+								</InfoHint>
+								<Input type="number" name="planned_day_count" value="14" min="1" max="14" required />
+							</Field>
+							<Field label={t('people')}>
+								<Input type="number" name="people_count" value="2" min="1" max="20" required />
+							</Field>
+							<div class="sm:col-span-3">
+								<Button>{t('generateDraft')}</Button>
+							</div>
+						</form>
+					</details>
+				</Panel>
+			)
+		}
 	</section>
 </AppLayout>

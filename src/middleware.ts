@@ -1,7 +1,8 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getAuthConfig, getSession } from './lib/auth';
+import { isSameOriginRequest } from './lib/security';
 
-const PUBLIC_PATHS = ['/login', '/auth/login', '/auth/callback', '/favicon.ico', '/favicon.svg', '/manifest.webmanifest', '/sw.js'];
+const PUBLIC_PATHS = ['/login', '/auth/login', '/auth/callback', '/favicon.svg', '/manifest.webmanifest', '/sw.js'];
 
 function isPublicPath(pathname: string) {
 	return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/_astro/');
@@ -12,8 +13,12 @@ export const onRequest = defineMiddleware(async ({ request, url, redirect, local
 	// shared 'local' user is used.
 	locals.userId = 'local';
 
+	if (!isSameOriginRequest(request)) {
+		return new Response('Forbidden', { status: 403 });
+	}
+
 	if (isPublicPath(url.pathname)) {
-		return next();
+		return withPrivateCacheHeaders(await next(), url.pathname);
 	}
 
 	const authConfig = getAuthConfig();
@@ -21,11 +26,11 @@ export const onRequest = defineMiddleware(async ({ request, url, redirect, local
 
 	if (session) {
 		locals.userId = session.user.id;
-		return next();
+		return withPrivateCacheHeaders(await next(), url.pathname);
 	}
 
 	if (!authConfig) {
-		return next();
+		return withPrivateCacheHeaders(await next(), url.pathname);
 	}
 
 	if (url.pathname.startsWith('/api/')) {
@@ -35,3 +40,13 @@ export const onRequest = defineMiddleware(async ({ request, url, redirect, local
 	const returnTo = `${url.pathname}${url.search}`;
 	return redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 });
+
+function withPrivateCacheHeaders(response: Response, pathname: string): Response {
+	if (pathname.startsWith('/_astro/') || pathname === '/favicon.svg' || pathname === '/manifest.webmanifest' || pathname === '/sw.js') {
+		return response;
+	}
+	const headers = new Headers(response.headers);
+	headers.set('Cache-Control', 'private, no-store');
+	headers.set('Vary', 'Cookie');
+	return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}

@@ -12,7 +12,7 @@ import { useTranslations } from '../../lib/i18n';
 let databaseError = '';
 let aiConfigured = false;
 try {
-	aiConfigured = Boolean(await getAiSettings(getDb(), Astro.locals.userId));
+	aiConfigured = (await getAiSettings(getDb(), Astro.locals.userId)).providers.length > 0;
 } catch (error) {
 	databaseError = error instanceof Error ? error.message : 'Unknown database error';
 }
@@ -24,11 +24,13 @@ const aiError = Astro.url.searchParams.get('ai_error') ?? undefined;
 <AppLayout active="recipes" title={t('newRecipe')}>
 	<section class="grid gap-4">
 		<PageHeader title={t('newRecipe')} backHref="/recipes" backLabel={t('recipes')} />
-		{databaseError && (
-			<Alert title={t('databaseSetupNeeded')}>
-				<p class="m-0">{databaseError}</p>
-			</Alert>
-		)}
+		{
+			databaseError && (
+				<Alert title={t('databaseSetupNeeded')}>
+					<p class="m-0">{databaseError}</p>
+				</Alert>
+			)
+		}
 		<AiRecipePanel mode="generate" configured={aiConfigured} error={aiError} />
 		<Panel>
 			<RecipeForm disabled={Boolean(databaseError)} />

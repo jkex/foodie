@@ -30,7 +30,7 @@ try {
 		recipe = translateRecipe(locale, rawRecipe);
 		ingredients = await listRecipeIngredients(db, Astro.locals.userId, rawRecipe.id);
 	}
-	aiConfigured = Boolean(await getAiSettings(db, Astro.locals.userId));
+	aiConfigured = (await getAiSettings(db, Astro.locals.userId)).providers.length > 0;
 } catch (error) {
 	databaseError = error instanceof Error ? error.message : 'Unknown database error';
 }
@@ -46,45 +46,48 @@ const aiError = Astro.url.searchParams.get('ai_error') ?? undefined;
 <AppLayout active="recipes" title={recipe?.name ?? t('editRecipe')}>
 	<section class="grid gap-4">
 		<PageHeader title={recipe?.name ?? t('editRecipe')} backHref="/recipes" backLabel={t('recipes')}>
-			<Badge slot="action" tone={lastCooked ? 'accent' : 'amber'}>
+			<Badge slot="action" tone={lastCooked ? 'primary' : 'warning'}>
 				{lastCooked ? `${t('lastCooked')}: ${lastCooked}` : t('neverCooked')}
 			</Badge>
 		</PageHeader>
 
-		{databaseError && (
-			<Alert title={t('databaseSetupNeeded')}>
-				<p class="m-0">{databaseError}</p>
-			</Alert>
-		)}
+		{
+			databaseError && (
+				<Alert title={t('databaseSetupNeeded')}>
+					<p class="m-0">{databaseError}</p>
+				</Alert>
+			)
+		}
 
-		{recipe && (() => {
-			const isPublicRecipe = recipe.userId === 'system';
-			return (
-				<>
-					{isPublicRecipe && (
-						<Alert title={locale === 'de' ? 'Standardrezept (schreibgeschützt)' : 'Default Recipe (Read-only)'}>
-							<p class="m-0 text-sm">
-								{locale === 'de'
-									? 'Dies ist ein systemweites Standardrezept. Du kannst es für deine Menüpläne verwenden, aber du kannst es nicht verändern oder löschen.'
-									: 'This is a system-wide default recipe. You can use it in your meal plans, but you cannot modify or delete it.'}
-							</p>
-						</Alert>
-					)}
-					{!isPublicRecipe && (
-						<AiRecipePanel mode="edit" recipeId={recipe.id} configured={aiConfigured} error={aiError} />
-					)}
-					<Panel>
-						<RecipeForm recipe={recipe} ingredients={ingredients} disabled={isPublicRecipe} />
-					</Panel>
-					{!isPublicRecipe && (
-						<form method="post" action="/api/recipes">
-							<input type="hidden" name="action" value="delete" />
-							<input type="hidden" name="id" value={recipe.id} />
-							<Button variant="danger">{t('deleteRecipe')}</Button>
-						</form>
-					)}
-				</>
-			);
-		})()}
+		{
+			recipe &&
+				(() => {
+					const isPublicRecipe = recipe.userId === 'system';
+					return (
+						<>
+							{isPublicRecipe && (
+								<Alert title={locale === 'de' ? 'Standardrezept (schreibgeschützt)' : 'Default Recipe (Read-only)'}>
+									<p class="m-0 text-sm">
+										{locale === 'de'
+											? 'Dies ist ein systemweites Standardrezept. Du kannst es für deine Menüpläne verwenden, aber du kannst es nicht verändern oder löschen.'
+											: 'This is a system-wide default recipe. You can use it in your meal plans, but you cannot modify or delete it.'}
+									</p>
+								</Alert>
+							)}
+							{!isPublicRecipe && <AiRecipePanel mode="edit" configured={aiConfigured} error={aiError} />}
+							<Panel>
+								<RecipeForm recipe={recipe} ingredients={ingredients} disabled={isPublicRecipe} />
+							</Panel>
+							{!isPublicRecipe && (
+								<form method="post" action="/api/recipes">
+									<input type="hidden" name="action" value="delete" />
+									<input type="hidden" name="id" value={recipe.id} />
+									<Button variant="danger">{t('deleteRecipe')}</Button>
+								</form>
+							)}
+						</>
+					);
+				})()
+		}
 	</section>
 </AppLayout>

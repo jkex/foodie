@@ -1,39 +1,50 @@
 {
-  "name": "foodie",
-  "type": "module",
-  "version": "0.0.1",
-  "packageManager": "pnpm@11.5.3",
-  "engines": {
-    "node": ">=22.12.0"
-  },
-  "scripts": {
-    "dev": "astro dev",
-    "build": "pnpm build:staging",
-    "build:staging": "CLOUDFLARE_ENV=staging astro build",
-    "build:production": "CLOUDFLARE_ENV=production astro build",
-    "preview": "astro preview",
-    "astro": "astro",
-    "db:generate": "drizzle-kit generate",
-    "db:migrations:local": "wrangler d1 migrations apply DB --local",
-    "db:migrations:staging": "wrangler d1 migrations apply DB --env staging --remote",
-    "db:migrations:production": "wrangler d1 migrations apply DB --env production --remote",
-    "db:migrations:remote": "pnpm db:migrations:staging",
-    "deploy:staging": "pnpm build:staging && wrangler deploy --env staging",
-    "deploy:production": "pnpm build:production && wrangler deploy --env production"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.104.1",
-    "@astrojs/cloudflare": "^13.7.0",
-    "@lucide/astro": "^1.17.0",
-    "@tailwindcss/vite": "^4.3.0",
-    "@workos-inc/node": "^10.2.0",
-    "astro": "^6.4.6",
-    "drizzle-orm": "^0.45.2",
-    "tailwindcss": "^4.3.0"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260611.1",
-    "drizzle-kit": "^0.31.10",
-    "wrangler": "^4.100.0"
-  }
+	"name": "foodie",
+	"type": "module",
+	"version": "0.0.1",
+	"packageManager": "pnpm@11.5.3",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"scripts": {
+		"dev": "astro dev",
+		"build": "pnpm build:staging",
+		"build:staging": "CLOUDFLARE_ENV=staging astro build",
+		"build:production": "CLOUDFLARE_ENV=production astro build",
+		"preview": "astro preview",
+		"check": "astro check",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"astro": "astro",
+		"db:generate": "drizzle-kit generate",
+		"db:migrations:local": "wrangler d1 migrations apply DB --local",
+		"db:migrations:staging": "wrangler d1 migrations apply DB --env staging --remote",
+		"db:migrations:production": "wrangler d1 migrations apply DB --env production --remote",
+		"db:migrations:remote": "pnpm db:migrations:staging",
+		"deploy:staging": "pnpm build:staging && wrangler deploy --env staging",
+		"deploy:production": "pnpm build:production && wrangler deploy --env production"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.104.2",
+		"@astrojs/cloudflare": "^13.7.0",
+		"@lucide/astro": "^1.20.0",
+		"@tailwindcss/vite": "^4.3.1",
+		"@workos-inc/node": "^10.3.0",
+		"astro": "^6.4.8",
+		"drizzle-orm": "^0.45.2",
+		"tailwindcss": "^4.3.1"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.9",
+		"@cloudflare/workers-types": "^4.20260617.1",
+		"@types/node": "^25.9.3",
+		"drizzle-kit": "^0.31.10",
+		"prettier": "^3.8.4",
+		"prettier-plugin-astro": "^0.14.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9",
+		"wrangler": "^4.101.0"
+	}
 }

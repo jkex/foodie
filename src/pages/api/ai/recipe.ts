@@ -1,11 +1,13 @@
 import type { APIRoute } from 'astro';
-import { generateRecipe, getAiSettings } from '../../../lib/ai';
+import { consumeAiQuota, generateRecipe, resolveAiRequest } from '../../../lib/ai';
 import { createRecipe, getDb, getRecipe, listRecipeIngredients, updateRecipe } from '../../../lib/db';
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const formData = await request.formData();
 	const action = String(formData.get('action') ?? 'generate');
-	const prompt = String(formData.get('prompt') ?? '').trim();
+	const prompt = String(formData.get('prompt') ?? '')
+		.trim()
+		.slice(0, 2_000);
 	const recipeId = Number(formData.get('id'));
 	const backTo = action === 'edit' && Number.isFinite(recipeId) ? `/recipes/${recipeId}` : '/recipes/new';
 
@@ -15,12 +17,13 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
 	const db = getDb();
 	const userId = locals.userId;
-	const settings = await getAiSettings(db, userId);
-	if (!settings) {
-		return redirect(`${backTo}?ai_error=${encodeURIComponent('AI is not configured.')}`);
-	}
-
 	try {
+		const settings = await resolveAiRequest(db, userId);
+
+		if (!(await consumeAiQuota(db, userId))) {
+			return redirect(`${backTo}?ai_error=${encodeURIComponent('AI request limit reached. Try again next hour.')}`);
+		}
+
 		if (action === 'edit') {
 			const recipe = await getRecipe(db, userId, recipeId);
 			if (!recipe) {

@@ -30,7 +30,7 @@ Cloudflare Workers Builds should be configured with:
 
 ```text
 Production branch: prod
-Build command: 
+Build command:
 Deploy command: pnpm deploy:production
 Non-production branch deploy command: pnpm deploy:staging
 Path: /
@@ -67,6 +67,7 @@ Required Worker secrets:
 WORKOS_API_KEY
 WORKOS_CLIENT_ID
 WORKOS_COOKIE_PASSWORD
+AI_KEY_ENCRYPTION_SECRET
 ```
 
 Generate `WORKOS_COOKIE_PASSWORD` with at least 32 characters, for example:
@@ -81,9 +82,11 @@ Set secrets per environment:
 pnpm wrangler secret put WORKOS_API_KEY --env staging
 pnpm wrangler secret put WORKOS_CLIENT_ID --env staging
 pnpm wrangler secret put WORKOS_COOKIE_PASSWORD --env staging
+pnpm wrangler secret put AI_KEY_ENCRYPTION_SECRET --env staging
 pnpm wrangler secret put WORKOS_API_KEY --env production
 pnpm wrangler secret put WORKOS_CLIENT_ID --env production
 pnpm wrangler secret put WORKOS_COOKIE_PASSWORD --env production
+pnpm wrangler secret put AI_KEY_ENCRYPTION_SECRET --env production
 ```
 
 In the WorkOS Dashboard, enable Google and Apple as AuthKit/social login providers. Configure redirect URIs for each deployed environment:
@@ -231,7 +234,7 @@ Initial app capabilities:
 - Manage recipes.
 - Store structured ingredients.
 - Generate meal plans for a configurable number of cooked-food days.
-- Auto-create a draft weekly plan when none exists for the target week: plans always start on Monday; Mon–Wed targets this week's Monday, Thu–Sun targets next Monday (see `ensureWeeklyPlan` in `src/lib/plan.ts`).
+- Auto-create a 14-day draft plan when none exists for the target period: plans always start on Monday; Mon–Wed targets this week's Monday, Thu–Sun targets next Monday.
 - Default people count is `2`.
 - Rotate recipes based on oldest cooked date/rotation order.
 - Support multi-day recipe blocks.
@@ -275,7 +278,7 @@ All data is scoped to the signed-in WorkOS user. `src/middleware.ts` sets `local
 
 ## AI Recipe Assistant
 
-Users bring their own API key (Settings → AI assistant). Supported providers: Anthropic (default model `claude-opus-4-8`, via `@anthropic-ai/sdk` with structured outputs / `output_config.format`) and OpenAI (default `gpt-4o`, via the REST chat-completions API with `response_format: json_schema`). The recipe JSON schema lives in `src/lib/ai.ts`. Keys are stored per user in the `ai_settings` D1 table — they are not encrypted at rest, which is acceptable for this household app but should be revisited before any multi-tenant use. The `nodejs_compat` compatibility flag in `wrangler.toml` is required by the Anthropic SDK.
+Users bring their own API key (Settings → AI assistant). Supported providers: Anthropic (default model `claude-opus-4-8`, via `@anthropic-ai/sdk` with structured outputs / `output_config.format`) and OpenAI (default `gpt-4o`, via the REST chat-completions API with `response_format: json_schema`). The recipe JSON schema lives in `src/lib/ai.ts`. Keys are stored encrypted per user in the `ai_settings` D1 table. The `nodejs_compat` compatibility flag in `wrangler.toml` is required by the Anthropic SDK.
 
 ## UI Structure
 

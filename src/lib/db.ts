@@ -1,14 +1,28 @@
 import { and, asc, eq, max, sql, or } from 'drizzle-orm';
 import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import { env } from 'cloudflare:workers';
-import { ingredients, mealPlanItems, mealPlans, recipeIngredients, recipes } from '../db/schema';
+import {
+	aiProviderKeys,
+	aiSettings,
+	aiUsage,
+	ingredients,
+	mealPlanItems,
+	mealPlans,
+	recipeIngredients,
+	recipeRotationState,
+	recipes,
+} from '../db/schema';
 
 export type Database = DrizzleD1Database<{
 	ingredients: typeof ingredients;
 	mealPlanItems: typeof mealPlanItems;
 	mealPlans: typeof mealPlans;
 	recipeIngredients: typeof recipeIngredients;
+	recipeRotationState: typeof recipeRotationState;
 	recipes: typeof recipes;
+	aiSettings: typeof aiSettings;
+	aiProviderKeys: typeof aiProviderKeys;
+	aiUsage: typeof aiUsage;
 }>;
 
 export type Recipe = {
@@ -76,23 +90,52 @@ export function getDb(): Database {
 			mealPlanItems,
 			mealPlans,
 			recipeIngredients,
+			recipeRotationState,
 			recipes,
+			aiSettings,
+			aiProviderKeys,
+			aiUsage,
 		},
 	});
 }
 
 export async function listRecipes(db: Database, userId: string): Promise<Recipe[]> {
 	const rows = await db
-		.select()
+		.select({
+			recipe: recipes,
+			effectiveLastCookedAt: sql<string | null>`CASE
+				WHEN ${recipes.userId} = 'system' THEN ${recipeRotationState.lastCookedAt}
+				ELSE ${recipes.lastCookedAt}
+			END`,
+			effectiveRotationIndex: sql<number>`CASE
+				WHEN ${recipes.userId} = 'system' THEN COALESCE(${recipeRotationState.rotationIndex}, ${recipes.rotationIndex})
+				ELSE ${recipes.rotationIndex}
+			END`,
+		})
 		.from(recipes)
+		.leftJoin(recipeRotationState, and(eq(recipeRotationState.recipeId, recipes.id), eq(recipeRotationState.userId, userId)))
 		.where(
 			userId === 'local'
-				? eq(recipes.userId, 'local')
-				: or(eq(recipes.userId, userId), eq(recipes.userId, 'local'))
+				? or(eq(recipes.userId, 'local'), eq(recipes.userId, 'system'))
+				: or(eq(recipes.userId, userId), eq(recipes.userId, 'system')),
 		)
-		.orderBy(sql`${recipes.lastCookedAt} IS NOT NULL`, asc(recipes.lastCookedAt), asc(recipes.rotationIndex), asc(recipes.id));
+		.orderBy(
+			sql`CASE WHEN ${recipes.userId} = 'system' THEN ${recipeRotationState.lastCookedAt} ELSE ${recipes.lastCookedAt} END IS NOT NULL`,
+			asc(sql`CASE WHEN ${recipes.userId} = 'system' THEN ${recipeRotationState.lastCookedAt} ELSE ${recipes.lastCookedAt} END`),
+			asc(
+				sql`CASE
+					WHEN ${recipes.userId} = 'system' THEN COALESCE(${recipeRotationState.rotationIndex}, ${recipes.rotationIndex})
+					ELSE ${recipes.rotationIndex}
+				END`,
+			),
+			asc(recipes.id),
+		);
 
-	return rows.map(toRecipe);
+	return rows.map(({ recipe, effectiveLastCookedAt, effectiveRotationIndex }) => ({
+		...toRecipe(recipe),
+		last_cooked_at: effectiveLastCookedAt,
+		rotation_index: effectiveRotationIndex,
+	}));
 }
 
 export async function listRecipeIngredients(db: Database, userId: string, recipeId: number): Promise<RecipeIngredient[]> {
@@ -110,7 +153,14 @@ export async function listRecipeIngredients(db: Database, userId: string, recipe
 		.from(recipeIngredients)
 		.innerJoin(ingredients, eq(ingredients.id, recipeIngredients.ingredientId))
 		.innerJoin(recipes, eq(recipes.id, recipeIngredients.recipeId))
-		.where(and(eq(recipeIngredients.recipeId, recipeId), eq(recipes.userId, userId)))
+		.where(
+			and(
+				eq(recipeIngredients.recipeId, recipeId),
+				userId === 'local'
+					? or(eq(recipes.userId, 'local'), eq(recipes.userId, 'system'))
+					: or(eq(recipes.userId, userId), eq(recipes.userId, 'system')),
+			),
+		)
 		.orderBy(asc(ingredients.category), asc(ingredients.name));
 
 	return rows.map((row) => ({
@@ -137,7 +187,10 @@ export async function createRecipe(
 		ingredients: Array<{ name: string; category: string; quantity: number; unit: string; note: string }>;
 	},
 ): Promise<number> {
-	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes).where(eq(recipes.userId, userId));
+	const [maxRotation] = await db
+		.select({ value: max(recipes.rotationIndex) })
+		.from(recipes)
+		.where(eq(recipes.userId, userId));
 	const [recipe] = await db
 		.insert(recipes)
 		.values({
@@ -167,9 +220,9 @@ export async function getRecipe(db: Database, userId: string, recipeId: number):
 			and(
 				eq(recipes.id, recipeId),
 				userId === 'local'
-					? eq(recipes.userId, 'local')
-					: or(eq(recipes.userId, userId), eq(recipes.userId, 'local'))
-			)
+					? or(eq(recipes.userId, 'local'), eq(recipes.userId, 'system'))
+					: or(eq(recipes.userId, userId), eq(recipes.userId, 'system')),
+			),
 		)
 		.limit(1);
 	return row ? toRecipe(row) : null;
@@ -189,7 +242,7 @@ export async function updateRecipe(
 	},
 ): Promise<void> {
 	const owned = await getRecipe(db, userId, recipeId);
-	if (!owned || (userId !== 'local' && owned.userId !== userId)) {
+	if (!owned || owned.userId !== userId) {
 		return;
 	}
 
@@ -260,7 +313,12 @@ async function replaceRecipeIngredients(
 }
 
 export async function latestMealPlan(db: Database, userId: string): Promise<MealPlan | null> {
-	const [row] = await db.select().from(mealPlans).where(eq(mealPlans.userId, userId)).orderBy(sql`${mealPlans.createdAt} DESC`, sql`${mealPlans.id} DESC`).limit(1);
+	const [row] = await db
+		.select()
+		.from(mealPlans)
+		.where(eq(mealPlans.userId, userId))
+		.orderBy(sql`${mealPlans.createdAt} DESC`, sql`${mealPlans.id} DESC`)
+		.limit(1);
 	return row ? toMealPlan(row) : null;
 }
 
@@ -386,7 +444,7 @@ export async function resequenceMealPlan(db: Database, userId: string, mealPlanI
 	const recipeRows = await db
 		.select({ id: recipes.id, baseServings: recipes.baseServings })
 		.from(recipes)
-		.where(eq(recipes.userId, userId));
+		.where(or(eq(recipes.userId, userId), eq(recipes.userId, 'system')));
 	const baseServingsById = new Map(recipeRows.map((row) => [row.id, row.baseServings]));
 	let dayIndex = 0;
 
@@ -410,21 +468,37 @@ export async function resequenceMealPlan(db: Database, userId: string, mealPlanI
 }
 
 export async function commitMealPlanRotation(db: Database, userId: string, mealPlanId: number): Promise<void> {
+	const plan = await getMealPlan(db, userId, mealPlanId);
+	if (!plan || plan.status !== 'draft') {
+		return;
+	}
+
 	const items = await listMealPlanItems(db, userId, mealPlanId);
-	const [maxRotation] = await db.select({ value: max(recipes.rotationIndex) }).from(recipes).where(eq(recipes.userId, userId));
-	let rotationIndex = maxRotation?.value ?? 0;
+	const visibleRecipes = await listRecipes(db, userId);
+	let rotationIndex = visibleRecipes.reduce((currentMax, recipe) => Math.max(currentMax, recipe.rotation_index), 0);
 	const cookedAt = new Date().toISOString();
 
-	for (const item of items) {
+	for (const recipeId of new Set(items.map((item) => item.recipe_id))) {
 		rotationIndex += 1;
-		await db
-			.update(recipes)
-			.set({
-				lastCookedAt: cookedAt,
-				rotationIndex,
-				updatedAt: sql`CURRENT_TIMESTAMP`,
-			})
-			.where(and(eq(recipes.id, item.recipe_id), eq(recipes.userId, userId)));
+		const recipe = visibleRecipes.find((candidate) => candidate.id === recipeId);
+		if (recipe?.userId === 'system') {
+			await db
+				.insert(recipeRotationState)
+				.values({ userId, recipeId, lastCookedAt: cookedAt, rotationIndex })
+				.onConflictDoUpdate({
+					target: [recipeRotationState.userId, recipeRotationState.recipeId],
+					set: { lastCookedAt: cookedAt, rotationIndex, updatedAt: sql`CURRENT_TIMESTAMP` },
+				});
+		} else {
+			await db
+				.update(recipes)
+				.set({
+					lastCookedAt: cookedAt,
+					rotationIndex,
+					updatedAt: sql`CURRENT_TIMESTAMP`,
+				})
+				.where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+		}
 	}
 
 	await db

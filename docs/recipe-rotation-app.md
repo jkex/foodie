@@ -22,7 +22,7 @@ Core behavior:
 Defaults:
 
 - People count: `2`
-- Cooked-food days per plan: `5`
+- Cooked-food days per automatic plan: `14`
 - Main meals per cooked-food day: `1`
 
 ## Core User Workflows
@@ -213,10 +213,10 @@ Notes:
 
 The generator fills the configured number of cooked-food days, not always 7 calendar days.
 
-Automatic weekly plan:
+Automatic two-week plan:
 
 1. Plans always start on a Monday.
-2. When the plan or shopping pages load and the latest plan starts before the current target Monday (or no plan exists), a draft plan is generated automatically with the defaults (5 cooked-food days, 2 people).
+2. When the plan or shopping pages load and the latest plan starts before the current target Monday (or no plan exists), a draft plan is generated automatically with the defaults (14 cooked-food days, 2 people).
 3. Monday through Wednesday, the target Monday is the current week's Monday.
 4. From Thursday onward, the target Monday is next week's Monday.
 5. Auto-generation is skipped while there are no recipes.
@@ -224,7 +224,7 @@ Automatic weekly plan:
 
 Rules:
 
-1. Default `planned_day_count` is `5`.
+1. Default automatic `planned_day_count` is `14`.
 2. The user can set `planned_day_count` for each plan.
 3. Sort eligible recipes by oldest `last_cooked_at`, then by `rotation_index`.
 4. Pick recipes from the front of the queue until `planned_day_count` cooked-food slots are filled.
@@ -452,7 +452,7 @@ The first implementation should satisfy:
 - User can set recipe base servings.
 - User can set recipe default days.
 - User can generate a plan for a configurable number of cooked-food days.
-- Default plan uses `5` cooked-food days.
+- Default automatic plan uses `14` cooked-food days.
 - User can adjust planned cooked-food days, such as generating 3 or 7 days.
 - Default people count is `2`.
 - User can adjust people count for a plan.

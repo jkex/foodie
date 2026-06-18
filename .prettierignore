@@ -1,0 +1,16 @@
+dist/
+.astro/
+.wrangler/
+node_modules/
+pnpm-lock.yaml
+public/sw.js
+src/components/recipes/AiRecipePanel.astro
+.vscode/extensions.json
+.vscode/launch.json
+astro.config.mjs
+docs/future-ideas.md
+migrations/meta/0000_snapshot.json
+src/components/ui/EmptyState.astro
+src/components/ui/Panel.astro
+src/pages/auth/callback.ts
+src/pages/auth/login.ts

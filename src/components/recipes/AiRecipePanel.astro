@@ -5,38 +5,47 @@ import Button from '../ui/Button.astro';
 import Panel from '../ui/Panel.astro';
 import Textarea from '../ui/Textarea.astro';
 
-const { mode, recipeId, configured, error } = Astro.props as {
+const { mode, configured, error } = Astro.props as {
 	mode: 'generate' | 'edit';
-	recipeId?: number;
 	configured: boolean;
 	error?: string;
 };
 const { locale, t } = useTranslations(Astro);
 const isEdit = mode === 'edit';
+const labels = {
+	ingredients: t('ingredients'),
+	instructions: t('instructions'),
+	baseServings: t('baseServings'),
+	defaultDays: t('defaultDays'),
+	applySuccess: locale === 'de' ? 'Änderungen angewendet!' : 'Changes applied!',
+	aiThinking: t('aiThinking'),
+	aiApplyToForm: t('aiApplyToForm'),
+};
 ---
 
 {configured ? (
 	isEdit ? (
-		<div id="ai-chat-layout" class="grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out">
-			<!-- Chat Card -->
+		<>
+			<div id="ai-chat-layout" class="grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out">
+			{/* Chat Card */}
 			<div class="rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-5 flex flex-col justify-between min-h-[380px]">
 				<div>
 					<div class="mb-4 flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
 						<div class="flex items-center gap-2">
-							<Sparkles size={20} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400 animate-pulse" />
+							<Sparkles size={20} stroke-width={2} class="text-primary-600 dark:text-primary-400 animate-pulse" />
 							<h2 class="m-0 text-lg font-semibold tracking-tight">{t('aiChatTitle')}</h2>
 						</div>
-						<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-500/20">
-							<span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+						<span class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-600/10 dark:bg-primary-950/30 dark:text-primary-400 dark:ring-primary-500/20">
+							<span class="h-1.5 w-1.5 rounded-full bg-primary-500 animate-pulse"></span>
 							Assistant
 						</span>
 					</div>
 
-					<!-- Chat Messages Window -->
+					{/* Chat Messages Window */}
 					<div id="chat-messages" class="flex flex-col gap-3 overflow-y-auto max-h-[260px] pr-2 mb-4 scroll-smooth min-h-[180px]">
-						<!-- Initial Message -->
+						{/* Initial Message */}
 						<div class="flex gap-2.5 items-start max-w-[85%]">
-							<div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+							<div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400">
 								<Sparkles size={14} />
 							</div>
 							<div class="rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2.5 text-sm text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
@@ -49,8 +58,8 @@ const isEdit = mode === 'edit';
 					</div>
 				</div>
 
-				<!-- Chat input Form -->
-				<form id="chat-form" class="relative flex items-end gap-2 border border-neutral-200 bg-neutral-50/50 p-1.5 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:border-neutral-800 dark:bg-neutral-950/20 rounded-xl transition-all">
+				{/* Chat input Form */}
+				<form id="chat-form" class="relative flex items-end gap-2 border border-neutral-200 bg-neutral-50/50 p-1.5 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 dark:border-neutral-800 dark:bg-neutral-950/20 rounded-xl transition-all">
 					<textarea
 						id="chat-input"
 						rows="1"
@@ -61,31 +70,31 @@ const isEdit = mode === 'edit';
 					<button
 						type="submit"
 						id="chat-send-btn"
-						class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400 transition cursor-pointer"
+						class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:text-primary-950 dark:hover:bg-primary-400 transition cursor-pointer"
 						aria-label={t('aiSend')}
 					>
-						<Send size={15} strokeWidth={2.5} />
+						<Send size={15} stroke-width={2.5} />
 					</button>
 				</form>
 			</div>
 
-			<!-- Preview Card (initially hidden) -->
-			<div id="recipe-preview-card" class="hidden flex-col justify-between rounded-2xl border border-emerald-200/80 bg-emerald-50/10 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/10 shadow-sm sm:p-5 min-h-[380px] transition-all duration-300">
+			{/* Preview Card (initially hidden) */}
+			<div id="recipe-preview-card" class="hidden flex-col justify-between rounded-2xl border border-primary-200/80 bg-primary-50/10 p-4 dark:border-primary-800/40 dark:bg-primary-950/10 shadow-sm sm:p-5 min-h-[380px] transition-all duration-300">
 				<div>
 					<div class="mb-4 flex items-center justify-between border-b border-neutral-100 pb-3 dark:border-neutral-800">
 						<div class="flex items-center gap-2">
-							<div class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+							<div class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400">
 								<Sparkles size={16} />
 							</div>
 							<h3 class="m-0 text-md font-semibold tracking-tight text-neutral-800 dark:text-neutral-200">{t('aiPreviewTitle')}</h3>
 						</div>
-						<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/10 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-500/20">
+						<span class="inline-flex items-center gap-1 rounded-full bg-warning-50 px-2.5 py-0.5 text-xs font-medium text-warning-800 ring-1 ring-inset ring-warning-600/10 dark:bg-warning-950/30 dark:text-warning-400 dark:ring-warning-500/20">
 							Draft
 						</span>
 					</div>
 
 					<div class="overflow-y-auto max-h-[250px] pr-2 space-y-4 text-sm" id="preview-content">
-						<!-- Content filled by JS -->
+						{/* Content filled by JS */}
 					</div>
 				</div>
 
@@ -93,24 +102,16 @@ const isEdit = mode === 'edit';
 					<button
 						type="button"
 						id="apply-recipe-btn"
-						class="w-full inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 shadow-md shadow-emerald-500/5 hover:shadow-emerald-500/10 hover:scale-[1.01] active:scale-[0.99] transition duration-200 dark:from-emerald-500 dark:to-teal-400 dark:text-emerald-950 dark:hover:from-emerald-400 dark:hover:to-teal-300"
+						class="w-full inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-primary-600 to-accent-500 hover:from-primary-700 hover:to-accent-600 shadow-md shadow-primary-500/5 hover:shadow-primary-500/10 hover:scale-[1.01] active:scale-[0.99] transition duration-200 dark:from-primary-500 dark:to-accent-400 dark:text-primary-950 dark:hover:from-primary-400 dark:hover:to-accent-300"
 					>
-						<Sparkles size={16} strokeWidth={2.5} class="animate-pulse" />
+						<Sparkles size={16} stroke-width={2.5} class="animate-pulse" />
 						<span>{t('aiApplyToForm')}</span>
 					</button>
 				</div>
 			</div>
 		</div>
 
-		<script is:inline define:vars={{ locale, labels: {
-			ingredients: t('ingredients'),
-			instructions: t('instructions'),
-			baseServings: t('baseServings'),
-			defaultDays: t('defaultDays'),
-			applySuccess: locale === 'de' ? 'Änderungen angewendet!' : 'Changes applied!',
-			aiThinking: t('aiThinking'),
-			aiApplyToForm: t('aiApplyToForm')
-		}}}>
+			<script is:inline define:vars={{ locale, labels }}>
 			let chatHistory = [];
 			let currentProposedRecipe = null;
 
@@ -177,7 +178,7 @@ const isEdit = mode === 'edit';
 
 				const bubble = document.createElement('div');
 				if (role === 'user') {
-					bubble.className = 'rounded-2xl rounded-tr-sm bg-emerald-600 px-4 py-2.5 text-sm text-white dark:bg-emerald-500 dark:text-emerald-950 text-left';
+					bubble.className = 'rounded-2xl rounded-tr-sm bg-primary-600 px-4 py-2.5 text-sm text-white dark:bg-primary-500 dark:text-primary-950 text-left';
 				} else {
 					bubble.className = 'rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2.5 text-sm text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-left';
 				}
@@ -185,7 +186,7 @@ const isEdit = mode === 'edit';
 
 				if (role === 'assistant') {
 					const iconContainer = document.createElement('div');
-					iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400';
+					iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400';
 					iconContainer.innerHTML = `
 						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -207,7 +208,7 @@ const isEdit = mode === 'edit';
 				wrapper.className = 'flex gap-2.5 items-start max-w-[85%]';
 
 				const iconContainer = document.createElement('div');
-				iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400';
+				iconContainer.className = 'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400';
 				iconContainer.innerHTML = `
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin">
 						<line x1="12" y1="2" x2="12" y2="6"></line>
@@ -298,9 +299,9 @@ const isEdit = mode === 'edit';
 			}
 
 			function flashElement(el) {
-				el.classList.add('ring-4', 'ring-emerald-500/30', 'border-emerald-500', 'dark:ring-emerald-400/20', 'dark:border-emerald-400', 'transition-all', 'duration-300');
+				el.classList.add('ring-4', 'ring-primary-500/30', 'border-primary-500', 'dark:ring-primary-400/20', 'dark:border-primary-400', 'transition-all', 'duration-300');
 				setTimeout(() => {
-					el.classList.remove('ring-4', 'ring-emerald-500/30', 'border-emerald-500', 'dark:ring-emerald-400/20', 'dark:border-emerald-400');
+					el.classList.remove('ring-4', 'ring-primary-500/30', 'border-primary-500', 'dark:ring-primary-400/20', 'dark:border-primary-400');
 				}, 2000);
 			}
 
@@ -388,7 +389,7 @@ const isEdit = mode === 'edit';
 					appendMessage('user', promptVal);
 					chatHistory.push({ role: 'user', content: promptVal });
 
-					const thinkingBubble = showThinkingIndicator();
+					showThinkingIndicator();
 
 					try {
 						const currentRecipeState = getCurrentRecipeFromForm();
@@ -423,8 +424,8 @@ const isEdit = mode === 'edit';
 							// Reset the Apply button state in case it was applied before
 							if (applyRecipeBtn) {
 								applyRecipeBtn.disabled = false;
-								applyRecipeBtn.classList.remove('bg-neutral-100', 'text-neutral-400', 'cursor-not-allowed', 'from-emerald-600', 'to-teal-500');
-								applyRecipeBtn.classList.add('bg-gradient-to-r', 'from-emerald-600', 'to-teal-500');
+								applyRecipeBtn.classList.remove('bg-neutral-100', 'text-neutral-400', 'cursor-not-allowed', 'from-primary-600', 'to-accent-500');
+								applyRecipeBtn.classList.add('bg-gradient-to-r', 'from-primary-600', 'to-accent-500');
 								const textSpan = applyRecipeBtn.querySelector('span');
 								if (textSpan) textSpan.textContent = labels.aiApplyToForm;
 							}
@@ -454,7 +455,7 @@ const isEdit = mode === 'edit';
 
 					// Premium UI: turn apply button into success checkmark for feedback, then hide preview panel
 					applyRecipeBtn.disabled = true;
-					applyRecipeBtn.classList.remove('bg-gradient-to-r', 'from-emerald-600', 'to-teal-500');
+					applyRecipeBtn.classList.remove('bg-gradient-to-r', 'from-primary-600', 'to-accent-500');
 					applyRecipeBtn.classList.add('bg-neutral-100', 'text-neutral-400', 'dark:bg-neutral-800', 'dark:text-neutral-500', 'cursor-not-allowed');
 					const textSpan = applyRecipeBtn.querySelector('span');
 					if (textSpan) {
@@ -474,11 +475,12 @@ const isEdit = mode === 'edit';
 					}, 1200);
 				});
 			}
-		</script>
+			</script>
+		</>
 	) : (
 		<Panel>
 			<div class="mb-3 flex items-center gap-2">
-				<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+				<Sparkles size={18} stroke-width={2} class="text-primary-600 dark:text-primary-400" />
 				<h2 class="m-0 text-lg font-semibold tracking-tight">{t('generateWithAi')}</h2>
 			</div>
 
@@ -494,7 +496,7 @@ const isEdit = mode === 'edit';
 				<Textarea name="prompt" rows="2" required placeholder={t('aiPromptPlaceholder')} />
 				<div>
 					<Button>
-						<Sparkles size={16} strokeWidth={2} />
+						<Sparkles size={16} stroke-width={2} />
 						{t('aiGenerateButton')}
 					</Button>
 				</div>
@@ -504,12 +506,12 @@ const isEdit = mode === 'edit';
 ) : (
 	<Panel>
 		<div class="mb-3 flex items-center gap-2">
-			<Sparkles size={18} strokeWidth={2} class="text-emerald-600 dark:text-emerald-400" />
+			<Sparkles size={18} stroke-width={2} class="text-primary-600 dark:text-primary-400" />
 			<h2 class="m-0 text-lg font-semibold tracking-tight">{isEdit ? t('editWithAi') : t('generateWithAi')}</h2>
 		</div>
 		<p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
 			{t('aiSettingsHint')}
-			<a href="/settings" class="ml-1 font-medium text-emerald-700 underline dark:text-emerald-400">{t('settingsNav')}</a>
+			<a href="/settings" class="ml-1 font-medium text-primary-700 underline dark:text-primary-400">{t('settingsNav')}</a>
 		</p>
 	</Panel>
 )}

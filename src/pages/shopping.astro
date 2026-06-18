@@ -36,40 +36,45 @@ for (const item of shoppingList) {
 	<section class="grid gap-4" data-shopping-list data-plan-id={mealPlan?.id ?? ''}>
 		<PageHeader title={t('shoppingList')} />
 
-		{databaseError && (
-			<Alert title={t('databaseSetupNeeded')}>
-				<p class="m-0">{databaseError}</p>
-			</Alert>
-		)}
+		{
+			databaseError && (
+				<Alert title={t('databaseSetupNeeded')}>
+					<p class="m-0">{databaseError}</p>
+				</Alert>
+			)
+		}
 
-		{shoppingList.length > 0 ? (
-			[...groups.entries()].map(([category, items]) => (
-				<Panel>
-					<h2 class="mt-0 mb-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-						{translateCategory(locale, category)}
-					</h2>
-					<ul class="m-0 grid list-none gap-1 p-0">
-						{items.map((item) => (
-							<li>
-								<label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-neutral-50 has-checked:opacity-50 dark:hover:bg-neutral-800/60">
-									<input
-										type="checkbox"
-										data-shopping-item={`${category}|${item.name}|${item.unit}`}
-										class="h-5 w-5 shrink-0 rounded border-neutral-300 accent-emerald-600 dark:accent-emerald-500"
-									/>
-									<span class="text-sm">
-										<strong class="font-semibold">{formatQuantity(item.total_quantity)} {item.unit}</strong> {translateIngredient(locale, item.name)}
-										{item.notes && <small class="block text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</small>}
-									</span>
-								</label>
-							</li>
-						))}
-					</ul>
-				</Panel>
-			))
-		) : (
-			!databaseError && <EmptyState title={t('noPlan')} description={t('generatePlanForShopping')} />
-		)}
+		{
+			shoppingList.length > 0
+				? [...groups.entries()].map(([category, items]) => (
+						<Panel>
+							<h2 class="mt-0 mb-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+								{translateCategory(locale, category)}
+							</h2>
+							<ul class="m-0 grid list-none gap-1 p-0">
+								{items.map((item) => (
+									<li>
+										<label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-neutral-50 has-checked:opacity-50 dark:hover:bg-neutral-800/60">
+											<input
+												type="checkbox"
+												data-shopping-item={`${category}|${item.name}|${item.unit}`}
+												class="h-5 w-5 shrink-0 rounded border-neutral-300 accent-primary-600 dark:accent-primary-500"
+											/>
+											<span class="text-sm">
+												<strong class="font-semibold">
+													{formatQuantity(item.total_quantity)} {item.unit}
+												</strong>{' '}
+												{translateIngredient(locale, item.name)}
+												{item.notes && <small class="block text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</small>}
+											</span>
+										</label>
+									</li>
+								))}
+							</ul>
+						</Panel>
+					))
+				: !databaseError && <EmptyState title={t('noPlan')} description={t('generatePlanForShopping')} />
+		}
 	</section>
 
 	<script is:inline>
