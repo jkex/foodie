@@ -49,8 +49,6 @@ export const CURATED_MODELS: Record<AiProvider, ModelOption[]> = {
 		{ id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
 		{ id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
 		{ id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
-		{ id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Stable)' },
-		{ id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Stable)' },
 	],
 };
 
