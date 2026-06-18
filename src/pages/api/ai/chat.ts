@@ -8,15 +8,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	const userId = locals.userId;
 
 	try {
-		const settings = await resolveAiRequest(db, userId);
 		const body = (await readJsonBodyWithLimit(request, 100_000)) as {
 			prompt?: unknown;
 			history?: unknown;
 			recipe?: unknown;
+			provider?: unknown;
+			model?: unknown;
 		} | null;
 		if (!body || typeof body !== 'object' || Array.isArray(body)) {
 			return Response.json({ error: 'Invalid request body.' }, { status: 400 });
 		}
+		const settings = await resolveAiRequest(db, userId, {
+			provider: body.provider,
+			model: body.model,
+		});
 		const prompt = boundedString(body.prompt, 2_000);
 		const history = sanitizeHistory(body.history);
 		const recipe = sanitizeRecipe(body.recipe);
