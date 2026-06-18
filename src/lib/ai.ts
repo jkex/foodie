@@ -36,9 +36,8 @@ export type ModelOption = { id: string; label: string };
  */
 export const CURATED_MODELS: Record<AiProvider, ModelOption[]> = {
 	anthropic: [
+		{ id: 'claude-fable-5', label: 'Claude Fable 5' },
 		{ id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
-		{ id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-		{ id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
 	],
 	openai: [
 		{ id: 'gpt-5.5', label: 'GPT-5.5' },
@@ -48,9 +47,10 @@ export const CURATED_MODELS: Record<AiProvider, ModelOption[]> = {
 	],
 	gemini: [
 		{ id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-		{ id: 'gemini-3.5-pro', label: 'Gemini 3.5 Pro' },
 		{ id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
 		{ id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
+		{ id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Stable)' },
+		{ id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Stable)' },
 	],
 };
 
