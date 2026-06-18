@@ -15,15 +15,20 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 		return redirect(backTo);
 	}
 
+	const provider = formData.get('provider') || undefined;
+	const model = formData.get('model') || undefined;
+	const providerStr = typeof provider === 'string' ? provider : '';
+	const modelStr = typeof model === 'string' ? model : '';
+
 	const db = getDb();
 	const userId = locals.userId;
 	try {
-		const provider = formData.get('provider') || undefined;
-		const model = formData.get('model') || undefined;
 		const settings = await resolveAiRequest(db, userId, { provider, model });
 
 		if (!(await consumeAiQuota(db, userId))) {
-			return redirect(`${backTo}?ai_error=${encodeURIComponent('AI request limit reached. Try again next hour.')}`);
+			return redirect(
+				`${backTo}?ai_error=${encodeURIComponent('AI request limit reached. Try again next hour.')}&prompt=${encodeURIComponent(prompt)}&provider=${encodeURIComponent(providerStr)}&model=${encodeURIComponent(modelStr)}`
+			);
 		}
 
 		if (action === 'edit') {
@@ -56,6 +61,8 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 		return redirect(`/recipes/${id}`);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'AI request failed';
-		return redirect(`${backTo}?ai_error=${encodeURIComponent(message.slice(0, 200))}`);
+		return redirect(
+			`${backTo}?ai_error=${encodeURIComponent(message.slice(0, 200))}&prompt=${encodeURIComponent(prompt)}&provider=${encodeURIComponent(providerStr)}&model=${encodeURIComponent(modelStr)}`
+		);
 	}
 };
