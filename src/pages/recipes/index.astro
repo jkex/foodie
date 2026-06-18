@@ -44,57 +44,267 @@ const visibleRecipes = query
 			)
 		}
 
-		<form method="get" action="/recipes" class="relative">
-			<Search size={16} stroke-width={2} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
-			<Input type="search" name="q" value={query} placeholder={t('searchRecipes')} aria-label={t('searchRecipes')} class="pl-9" />
-		</form>
-
 		{
-			visibleRecipes.length > 0 ? (
-				<div class="grid gap-3">
-					{visibleRecipes.map((r) => {
-						const recipe = translateRecipe(locale, r);
-						const lastCooked = formatLastCooked(locale, recipe.last_cooked_at);
-						return (
-							<a
-								href={`/recipes/${recipe.id}`}
-								class="group grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 text-inherit no-underline shadow-sm transition hover:border-primary-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-primary-700"
-							>
-								<span class="grid gap-1.5">
-									<strong class="text-base font-semibold">{recipe.name}</strong>
-									<small class="text-sm text-neutral-500 dark:text-neutral-400">{recipe.description || t('noDescription')}</small>
-									<span class="mt-1 flex flex-wrap gap-1.5">
-										<Badge>
-											{recipe.base_servings} {t('baseServings').toLowerCase()}
-										</Badge>
-										<Badge>
-											{recipe.default_days} {recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}
-										</Badge>
-										<Badge tone={lastCooked ? 'primary' : 'warning'}>
-											{lastCooked ? `${t('lastCooked')}: ${lastCooked}` : t('neverCooked')}
-										</Badge>
+			recipes.length > 0 ? (
+				<>
+					<form method="get" action="/recipes" class="relative">
+						<Search size={16} stroke-width={2} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
+						<Input type="search" name="q" value={query} placeholder={t('searchRecipes')} aria-label={t('searchRecipes')} class="pl-9" />
+					</form>
+
+					<div id="recipes-container" class="grid gap-3">
+						{recipes.map((r) => {
+							const recipe = translateRecipe(locale, r);
+							const lastCooked = formatLastCooked(locale, recipe.last_cooked_at);
+							const isMatch = !query || `${recipe.name} ${recipe.description || ''}`.toLowerCase().includes(query.toLowerCase());
+							return (
+								<a
+									href={`/recipes/${recipe.id}`}
+									data-recipe-card
+									data-search-text={`${recipe.name} ${recipe.description || ''}`.toLowerCase()}
+									class:list={[
+										'group grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 text-inherit no-underline shadow-sm transition hover:border-primary-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-primary-700',
+										{ hidden: !isMatch },
+									]}
+								>
+									<span class="grid gap-1.5">
+										<strong class="text-base font-semibold">{recipe.name}</strong>
+										<small class="text-sm text-neutral-500 dark:text-neutral-400">{recipe.description || t('noDescription')}</small>
+										<span class="mt-1 flex flex-wrap gap-1.5">
+											<Badge>{`${recipe.base_servings} ${t('baseServings').toLowerCase()}`}</Badge>
+											<Badge>{`${recipe.default_days} ${recipe.default_days === 1 ? t('daySingular') : t('dayPlural')}`}</Badge>
+											<Badge tone={lastCooked ? 'primary' : 'warning'}>
+												{lastCooked ? `${t('lastCooked')}: ${lastCooked}` : t('neverCooked')}
+											</Badge>
+										</span>
 									</span>
-								</span>
-								<ChevronRight
-									size={18}
-									stroke-width={2}
-									class="text-neutral-300 transition group-hover:text-primary-600 dark:text-neutral-600 dark:group-hover:text-primary-400"
-								/>
-							</a>
-						);
-					})}
-				</div>
+									<ChevronRight
+										size={18}
+										stroke-width={2}
+										class="text-neutral-300 transition group-hover:text-primary-600 dark:text-neutral-600 dark:group-hover:text-primary-400"
+									/>
+								</a>
+							);
+						})}
+					</div>
+
+					<div id="empty-search-state" class:list={[{ hidden: visibleRecipes.length > 0 }]}>
+						<EmptyState title={t('noSearchResults')} />
+					</div>
+
+					<div
+						id="pagination-controls"
+						class="hidden mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-neutral-200 pt-4 dark:border-neutral-800"
+					>
+						<span id="pagination-info" class="text-sm text-neutral-500 dark:text-neutral-400" data-template={t('showingRecipes')}>
+							{/* Populated by JS */}
+						</span>
+						<div class="flex items-center gap-2">
+							<Button id="prev-page-btn" type="button" variant="secondary" class="px-3 min-h-9">
+								{t('previous')}
+							</Button>
+							<div id="page-numbers" class="flex flex-wrap items-center justify-center gap-1">
+								{/* Populated by JS */}
+							</div>
+							<Button id="next-page-btn" type="button" variant="secondary" class="px-3 min-h-9">
+								{t('next')}
+							</Button>
+						</div>
+					</div>
+				</>
 			) : (
 				!databaseError && (
-					<EmptyState title={query ? t('noSearchResults') : t('noRecipes')} description={query ? undefined : t('recipesEmptyHelp')}>
-						{!query && (
-							<Button variant="secondary" href="/recipes/new">
-								{t('newRecipe')}
-							</Button>
-						)}
+					<EmptyState title={t('noRecipes')} description={t('recipesEmptyHelp')}>
+						<Button variant="secondary" href="/recipes/new">
+							{t('newRecipe')}
+						</Button>
 					</EmptyState>
 				)
 			)
 		}
 	</section>
 </AppLayout>
+
+<script is:inline>
+	// Client-side search and pagination setup
+	window.addEventListener('DOMContentLoaded', () => {
+		const ITEMS_PER_PAGE = 10;
+		let currentPage = 1;
+		let filteredCards = [];
+
+		const searchInput = document.querySelector('input[name="q"]');
+		const form = searchInput?.closest('form');
+		const cards = Array.from(document.querySelectorAll('[data-recipe-card]'));
+		const emptyState = document.getElementById('empty-search-state');
+		const recipesContainer = document.getElementById('recipes-container');
+
+		const prevBtn = document.getElementById('prev-page-btn');
+		const nextBtn = document.getElementById('next-page-btn');
+		const pageNumbers = document.getElementById('page-numbers');
+		const paginationInfo = document.getElementById('pagination-info');
+		const paginationControls = document.getElementById('pagination-controls');
+
+		if (form) {
+			form.addEventListener('submit', (e) => {
+				e.preventDefault();
+			});
+		}
+
+		function updateDisplay() {
+			const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+			// Filter cards
+			filteredCards = cards.filter((card) => {
+				const searchText = card.getAttribute('data-search-text') || '';
+				return searchText.includes(query);
+			});
+
+			// Show or hide empty state / pagination
+			if (filteredCards.length === 0) {
+				if (emptyState) emptyState.classList.remove('hidden');
+				if (recipesContainer) recipesContainer.classList.add('hidden');
+				if (paginationControls) paginationControls.classList.add('hidden');
+				return;
+			} else {
+				if (emptyState) emptyState.classList.add('hidden');
+				if (recipesContainer) recipesContainer.classList.remove('hidden');
+
+				if (filteredCards.length > ITEMS_PER_PAGE) {
+					if (paginationControls) paginationControls.classList.remove('hidden');
+				} else {
+					if (paginationControls) paginationControls.classList.add('hidden');
+				}
+			}
+
+			// Calculate pagination boundary
+			const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+			if (currentPage > totalPages) {
+				currentPage = Math.max(1, totalPages);
+			}
+
+			const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+			const endIndex = startIndex + ITEMS_PER_PAGE;
+
+			// Hide all cards first, then show current page's matching cards
+			cards.forEach((card) => card.classList.add('hidden'));
+
+			filteredCards.slice(startIndex, endIndex).forEach((card) => {
+				card.classList.remove('hidden');
+			});
+
+			// Update pagination text info
+			if (paginationInfo) {
+				const actualEnd = Math.min(endIndex, filteredCards.length);
+				const template = paginationInfo.getAttribute('data-template') || '';
+				paginationInfo.textContent = template
+					.replace('{start}', String(startIndex + 1))
+					.replace('{end}', String(actualEnd))
+					.replace('{total}', String(filteredCards.length));
+			}
+
+			// Update pagination button disable states
+			if (prevBtn) prevBtn.disabled = currentPage === 1;
+			if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+			// Render page number links
+			if (pageNumbers) {
+				pageNumbers.innerHTML = '';
+
+				// Helper to create page button
+				const createPageBtn = (page) => {
+					const btn = document.createElement('button');
+					btn.type = 'button';
+					btn.textContent = String(page);
+					if (page === currentPage) {
+						btn.className =
+							'inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold transition bg-primary-600 text-white dark:bg-primary-500 dark:text-primary-950 shadow-sm cursor-pointer';
+					} else {
+						btn.className =
+							'inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold transition border border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800 shadow-xs cursor-pointer';
+					}
+					btn.addEventListener('click', () => {
+						currentPage = page;
+						updateDisplay();
+						window.scrollTo({ top: 0, behavior: 'smooth' });
+					});
+					return btn;
+				};
+
+				// If total pages is small, show all. If large, show subset with ellipses
+				const maxPageButtons = 5;
+				if (totalPages <= maxPageButtons) {
+					for (let i = 1; i <= totalPages; i++) {
+						pageNumbers.appendChild(createPageBtn(i));
+					}
+				} else {
+					// Advanced pagination with ellipses (...)
+					let start = Math.max(1, currentPage - 1);
+					let end = Math.min(totalPages, currentPage + 1);
+
+					if (currentPage <= 2) {
+						end = 3;
+					}
+					if (currentPage >= totalPages - 1) {
+						start = totalPages - 2;
+					}
+
+					if (start > 1) {
+						pageNumbers.appendChild(createPageBtn(1));
+						if (start > 2) {
+							const dot = document.createElement('span');
+							dot.textContent = '...';
+							dot.className = 'text-neutral-400 text-sm px-1';
+							pageNumbers.appendChild(dot);
+						}
+					}
+
+					for (let i = start; i <= end; i++) {
+						pageNumbers.appendChild(createPageBtn(i));
+					}
+
+					if (end < totalPages) {
+						if (end < totalPages - 1) {
+							const dot = document.createElement('span');
+							dot.textContent = '...';
+							dot.className = 'text-neutral-400 text-sm px-1';
+							pageNumbers.appendChild(dot);
+						}
+						pageNumbers.appendChild(createPageBtn(totalPages));
+					}
+				}
+			}
+		}
+
+		// Listen to search inputs
+		if (searchInput) {
+			searchInput.addEventListener('input', () => {
+				currentPage = 1; // Reset page on new search
+				updateDisplay();
+			});
+		}
+
+		if (prevBtn) {
+			prevBtn.addEventListener('click', () => {
+				if (currentPage > 1) {
+					currentPage--;
+					updateDisplay();
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				}
+			});
+		}
+
+		if (nextBtn) {
+			nextBtn.addEventListener('click', () => {
+				const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+				if (currentPage < totalPages) {
+					currentPage++;
+					updateDisplay();
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				}
+			});
+		}
+
+		// Initial render
+		updateDisplay();
+	});
+</script>

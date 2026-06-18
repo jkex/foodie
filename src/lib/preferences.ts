@@ -117,7 +117,7 @@ export const translations = {
 		aiConfigured: 'Configured',
 		aiNotConfigured: 'Not configured',
 		aiSave: 'Save AI settings',
-		aiRemoveKey: 'Remove key',
+		aiRemoveKey: 'Remove key for {provider}',
 		aiSettingsHint: 'Add your AI API key in Settings to generate recipes.',
 		generateWithAi: 'Generate with AI',
 		aiPromptPlaceholder: 'e.g. A quick vegetarian pasta for weekdays',
@@ -151,6 +151,9 @@ export const translations = {
 		workosMissing: 'WorkOS is not configured.',
 		workosMissingHelp: 'Set WORKOS_API_KEY, WORKOS_CLIENT_ID, and WORKOS_COOKIE_PASSWORD as Cloudflare Worker secrets.',
 		signOut: 'Sign out',
+		previous: 'Previous',
+		next: 'Next',
+		showingRecipes: 'Showing {start}-{end} of {total} recipes',
 	},
 	de: {
 		appTitle: 'Rezeptrotation und Einkaufsliste',
@@ -266,7 +269,7 @@ export const translations = {
 		aiConfigured: 'Eingerichtet',
 		aiNotConfigured: 'Nicht eingerichtet',
 		aiSave: 'KI-Einstellungen speichern',
-		aiRemoveKey: 'Schlüssel entfernen',
+		aiRemoveKey: 'Schlüssel für {provider} entfernen',
 		aiSettingsHint: 'Hinterlege deinen KI-API-Schlüssel in den Einstellungen, um Rezepte zu generieren.',
 		generateWithAi: 'Mit KI erstellen',
 		aiPromptPlaceholder: 'z. B. Schnelle vegetarische Pasta für unter der Woche',
@@ -300,6 +303,9 @@ export const translations = {
 		workosMissing: 'WorkOS ist nicht konfiguriert.',
 		workosMissingHelp: 'Setze WORKOS_API_KEY, WORKOS_CLIENT_ID und WORKOS_COOKIE_PASSWORD als Cloudflare Worker Secrets.',
 		signOut: 'Abmelden',
+		previous: 'Zurück',
+		next: 'Weiter',
+		showingRecipes: 'Zeige {start}-{end} von {total} Rezepten',
 	},
 } as const;
 

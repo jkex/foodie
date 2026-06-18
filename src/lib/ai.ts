@@ -24,8 +24,8 @@ export const PROVIDER_KEY_URLS: Record<AiProvider, string> = {
 
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
 	anthropic: 'claude-opus-4-8',
-	openai: 'gpt-4o',
-	gemini: 'gemini-2.5-flash',
+	openai: 'gpt-5.5',
+	gemini: 'gemini-3.5-flash',
 };
 
 export type ModelOption = { id: string; label: string };
@@ -41,16 +41,16 @@ export const CURATED_MODELS: Record<AiProvider, ModelOption[]> = {
 		{ id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
 	],
 	openai: [
-		{ id: 'gpt-4o', label: 'GPT-4o' },
-		{ id: 'gpt-4o-mini', label: 'GPT-4o mini' },
-		{ id: 'gpt-4.1', label: 'GPT-4.1' },
-		{ id: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
+		{ id: 'gpt-5.5', label: 'GPT-5.5' },
+		{ id: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
+		{ id: 'gpt-5.4', label: 'GPT-5.4' },
 		{ id: 'o4-mini', label: 'o4-mini' },
 	],
 	gemini: [
-		{ id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-		{ id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-		{ id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+		{ id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+		{ id: 'gemini-3.5-pro', label: 'Gemini 3.5 Pro' },
+		{ id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+		{ id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
 	],
 };
 

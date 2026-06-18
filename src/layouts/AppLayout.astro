@@ -115,6 +115,77 @@ const navItems: NavItem[] = [
 					navigator.serviceWorker.register('/sw.js').catch(() => {});
 				});
 			}
+
+			// Warn about unsaved changes when leaving a page with dirty forms
+			window.addEventListener('DOMContentLoaded', () => {
+				const forms = Array.from(document.querySelectorAll('form[method="post"]')).filter((form) => {
+					return form.querySelector('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+				});
+
+				if (forms.length === 0) return;
+
+				function getFormState(form) {
+					const state = [];
+					for (const el of form.elements) {
+						if (!el.name) continue;
+						if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') continue;
+
+						if (el.type === 'checkbox' || el.type === 'radio') {
+							state.push(`${el.name}=${el.checked}`);
+						} else if (el.type === 'select-multiple') {
+							for (const option of el.options) {
+								if (option.selected) {
+									state.push(`${el.name}=${option.value}`);
+								}
+							}
+						} else {
+							state.push(`${el.name}=${el.value}`);
+						}
+					}
+					return state.join('&');
+				}
+
+				const initialStates = new Map();
+				for (const form of forms) {
+					initialStates.set(form, getFormState(form));
+				}
+
+				let isSubmitting = false;
+				document.addEventListener('submit', (event) => {
+					if (!event.defaultPrevented) {
+						isSubmitting = true;
+					}
+				});
+
+				const resetSubmitting = () => {
+					isSubmitting = false;
+				};
+				document.addEventListener('click', resetSubmitting, { capture: true, passive: true });
+				document.addEventListener('keydown', resetSubmitting, { capture: true, passive: true });
+
+				window.addEventListener('beforeunload', (event) => {
+					if (isSubmitting) {
+						setTimeout(resetSubmitting, 100);
+						return;
+					}
+
+					let isDirty = false;
+					for (const form of forms) {
+						const initialState = initialStates.get(form);
+						const currentState = getFormState(form);
+						if (initialState !== currentState) {
+							isDirty = true;
+							break;
+						}
+					}
+
+					if (isDirty) {
+						event.preventDefault();
+						event['returnValue'] = '';
+						return '';
+					}
+				});
+			});
 		</script>
 	</body>
 </html>

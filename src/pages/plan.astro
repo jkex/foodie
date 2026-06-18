@@ -141,9 +141,7 @@ if (mealPlan) {
 									<CalendarRange size={18} stroke-width={2} class="text-primary-600 dark:text-primary-400" />
 									<div class="leading-tight">
 										<dt class="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">{dateRange}</dt>
-										<dd class="m-0 text-sm font-semibold">
-											{mealPlan.planned_day_count} {t('statCookingDays')}
-										</dd>
+										<dd class="m-0 text-sm font-semibold">{`${mealPlan.planned_day_count} ${t('statCookingDays')}`}</dd>
 									</div>
 								</div>
 								<div class="flex items-center gap-2 rounded-2xl bg-white/70 px-3.5 py-2 shadow-xs backdrop-blur dark:bg-neutral-950/50">
