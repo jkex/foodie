@@ -1,25 +1,20 @@
 {
-  "name": "Foodie",
-  "short_name": "Foodie",
-  "description": "Recipe rotation, meal planning, and shopping lists.",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#f6f7f2",
-  "theme_color": "#1f5f4a",
-  "categories": ["food", "productivity", "lifestyle"],
-  "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
-    }
-  ]
+	"name": "Foodie",
+	"short_name": "Foodie",
+	"description": "Recipe rotation, meal planning, and shopping lists.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#f1f6f2",
+	"theme_color": "#3f725b",
+	"categories": ["food", "productivity", "lifestyle"],
+	"icons": [
+		{
+			"src": "/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
 }

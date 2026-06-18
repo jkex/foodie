@@ -13,8 +13,12 @@ export const recipes = sqliteTable(
 		defaultDays: integer('default_days').notNull().default(1),
 		lastCookedAt: text('last_cooked_at'),
 		rotationIndex: integer('rotation_index').notNull().default(0),
-		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-		updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [
 		check('recipes_base_servings_positive', sql`${table.baseServings} > 0`),
@@ -31,8 +35,12 @@ export const ingredients = sqliteTable(
 		userId: text('user_id').notNull().default('local'),
 		name: text('name').notNull(),
 		category: text('category').notNull().default('Other'),
-		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-		updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [uniqueIndex('ingredients_user_name_unique').on(table.userId, table.name)],
 );
@@ -50,12 +58,36 @@ export const recipeIngredients = sqliteTable(
 		quantity: real('quantity').notNull(),
 		unit: text('unit').notNull().default(''),
 		note: text('note').notNull().default(''),
-		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-		updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [
 		check('recipe_ingredients_quantity_non_negative', sql`${table.quantity} >= 0`),
 		index('idx_recipe_ingredients_recipe').on(table.recipeId),
+	],
+);
+
+export const recipeRotationState = sqliteTable(
+	'recipe_rotation_state',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull(),
+		recipeId: integer('recipe_id')
+			.notNull()
+			.references(() => recipes.id, { onDelete: 'cascade' }),
+		lastCookedAt: text('last_cooked_at'),
+		rotationIndex: integer('rotation_index').notNull().default(0),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => [
+		uniqueIndex('recipe_rotation_state_user_recipe_unique').on(table.userId, table.recipeId),
+		index('idx_recipe_rotation_state_user').on(table.userId, table.lastCookedAt, table.rotationIndex),
 	],
 );
 
@@ -67,9 +99,15 @@ export const mealPlans = sqliteTable(
 		startDate: text('start_date').notNull(),
 		plannedDayCount: integer('planned_day_count').notNull().default(5),
 		peopleCount: integer('people_count').notNull().default(2),
-		status: text('status', { enum: ['draft', 'accepted'] }).notNull().default('draft'),
-		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-		updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		status: text('status', { enum: ['draft', 'accepted'] })
+			.notNull()
+			.default('draft'),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [
 		check('meal_plans_planned_day_count_positive', sql`${table.plannedDayCount} > 0`),
@@ -94,7 +132,9 @@ export const mealPlanItems = sqliteTable(
 		dayCount: integer('day_count').notNull(),
 		peopleCount: integer('people_count').notNull(),
 		servingMultiplier: real('serving_multiplier').notNull(),
-		createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [
 		check('meal_plan_items_start_day_index_non_negative', sql`${table.startDayIndex} >= 0`),
@@ -108,15 +148,50 @@ export const mealPlanItems = sqliteTable(
 export const aiSettings = sqliteTable(
 	'ai_settings',
 	{
-	id: integer('id').primaryKey({ autoIncrement: true }),
-	userId: text('user_id').notNull().default('local'),
-	provider: text('provider', { enum: ['anthropic', 'openai'] }).notNull(),
-	apiKey: text('api_key').notNull(),
-	model: text('model').notNull().default(''),
-	createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull().default('local'),
+		// The active/default provider. Per-provider API keys and preferred models live in ai_provider_keys.
+		provider: text('provider', { enum: ['anthropic', 'openai', 'gemini'] }).notNull(),
+		apiKey: text('api_key').notNull().default(''),
+		model: text('model').notNull().default(''),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [uniqueIndex('ai_settings_user_unique').on(table.userId)],
+);
+
+export const aiProviderKeys = sqliteTable(
+	'ai_provider_keys',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull().default('local'),
+		provider: text('provider', { enum: ['anthropic', 'openai', 'gemini'] }).notNull(),
+		apiKey: text('api_key').notNull(),
+		// Preferred model for this provider, used as the default when this provider is selected.
+		model: text('model').notNull().default(''),
+		createdAt: text('created_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text('updated_at')
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => [uniqueIndex('ai_provider_keys_user_provider_unique').on(table.userId, table.provider)],
+);
+
+export const aiUsage = sqliteTable(
+	'ai_usage',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id').notNull(),
+		windowStartedAt: text('window_started_at').notNull(),
+		requestCount: integer('request_count').notNull().default(0),
+	},
+	(table) => [uniqueIndex('ai_usage_user_window_unique').on(table.userId, table.windowStartedAt)],
 );
 
 export type RecipeRow = typeof recipes.$inferSelect;

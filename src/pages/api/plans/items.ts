@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 import type { APIRoute } from 'astro';
 import { mealPlanItems } from '../../../db/schema';
-import { getDb, getMealPlan, resequenceMealPlan, setMealPlanItemDays, setMealPlanItemRecipe } from '../../../lib/db';
-import { positiveInteger } from '../../../lib/forms';
+import { getDb, getMealPlan, getRecipe, resequenceMealPlan, setMealPlanItemDays, setMealPlanItemRecipe } from '../../../lib/db';
+import { boundedPositiveInteger } from '../../../lib/forms';
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const formData = await request.formData();
@@ -14,11 +14,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 		return redirect('/plan/edit');
 	}
 
-	const [item] = await db
-		.select({ mealPlanId: mealPlanItems.mealPlanId })
-		.from(mealPlanItems)
-		.where(eq(mealPlanItems.id, itemId))
-		.limit(1);
+	const [item] = await db.select({ mealPlanId: mealPlanItems.mealPlanId }).from(mealPlanItems).where(eq(mealPlanItems.id, itemId)).limit(1);
 
 	if (!item) {
 		return redirect('/plan/edit');
@@ -30,11 +26,14 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	}
 
 	if (action === 'update_days') {
-		await setMealPlanItemDays(db, itemId, positiveInteger(formData, 'day_count', 1));
+		await setMealPlanItemDays(db, itemId, boundedPositiveInteger(formData, 'day_count', 1, plan.planned_day_count));
 	} else if (action === 'replace') {
 		const recipeId = Number(formData.get('recipe_id'));
 		if (Number.isFinite(recipeId)) {
-			await setMealPlanItemRecipe(db, itemId, recipeId);
+			const recipe = await getRecipe(db, locals.userId, recipeId);
+			if (recipe) {
+				await setMealPlanItemRecipe(db, itemId, recipeId);
+			}
 		}
 	}
 

@@ -1,7 +1,13 @@
+overrides:
+  ws: 8.21.0
+  undici: 7.28.0
+  yaml-language-server>yaml: 2.9.0
+  esbuild: 0.28.1
 onlyBuiltDependencies:
   - esbuild
   - sharp
   - workerd
+minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@cloudflare/workerd-darwin-64@1.20260611.1'
   - '@cloudflare/workerd-darwin-arm64@1.20260611.1'

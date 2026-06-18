@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createRecipe, deleteRecipe, getDb, updateRecipe } from '../../lib/db';
-import { parseIngredientRows, positiveInteger, positiveNumber, requiredString } from '../../lib/forms';
+import { boundedPositiveInteger, parseIngredientRows, positiveNumber, requiredString } from '../../lib/forms';
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const formData = await request.formData();
@@ -17,11 +17,11 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	}
 
 	const input = {
-		name: requiredString(formData, 'name'),
-		description: String(formData.get('description') ?? ''),
-		instructions: String(formData.get('instructions') ?? ''),
-		baseServings: positiveNumber(formData, 'base_servings', 2),
-		defaultDays: positiveInteger(formData, 'default_days', 1),
+		name: requiredString(formData, 'name').slice(0, 200),
+		description: String(formData.get('description') ?? '').slice(0, 2_000),
+		instructions: String(formData.get('instructions') ?? '').slice(0, 20_000),
+		baseServings: Math.min(100, positiveNumber(formData, 'base_servings', 2)),
+		defaultDays: boundedPositiveInteger(formData, 'default_days', 1, 14),
 		ingredients: parseIngredientRows(formData),
 	};
 

@@ -10,15 +10,17 @@ const { title, subtitle, backHref, backLabel } = Astro.props as {
 ---
 
 <header class="grid gap-2">
-	{backHref && (
-		<a
-			href={backHref}
-			class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-neutral-500 no-underline transition hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-		>
-			<ArrowLeft size={16} strokeWidth={2} />
-			{backLabel}
-		</a>
-	)}
+	{
+		backHref && (
+			<a
+				href={backHref}
+				class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-neutral-500 no-underline transition hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+			>
+				<ArrowLeft size={16} stroke-width={2} />
+				{backLabel}
+			</a>
+		)
+	}
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<div>
 			<h1 class="m-0 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>

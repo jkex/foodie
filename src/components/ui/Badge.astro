@@ -1,12 +1,12 @@
 ---
-type Tone = 'neutral' | 'accent' | 'amber';
+type Tone = 'neutral' | 'primary' | 'warning';
 
 const { tone = 'neutral', class: className = '' } = Astro.props as { tone?: Tone; class?: string };
 
 const tones: Record<Tone, string> = {
 	neutral: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
-	accent: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
-	amber: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+	primary: 'bg-primary-100 text-primary-800 dark:bg-primary-950 dark:text-primary-300',
+	warning: 'bg-warning-100 text-warning-800 dark:bg-warning-950 dark:text-warning-300',
 };
 ---
 
