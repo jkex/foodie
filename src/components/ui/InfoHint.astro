@@ -31,6 +31,7 @@ const position = [
 	</button>
 	<span
 		role="tooltip"
+		data-align={align}
 		class:list={[
 			'pointer-events-none absolute z-50 w-56 max-w-[80vw] rounded-xl border border-neutral-200 bg-white p-3 text-left text-xs leading-relaxed font-normal text-neutral-600 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300',
 			...position,
@@ -39,3 +40,48 @@ const position = [
 		<slot />
 	</span>
 </span>
+
+<script>
+	function adjustTooltip(tooltip: HTMLElement) {
+		// Reset any previous custom translation so we measure the original CSS layout position
+		tooltip.style.transform = '';
+
+		const rect = tooltip.getBoundingClientRect();
+		const viewportWidth = window.innerWidth;
+		const margin = 8; // Keep 8px gap from screen edges
+
+		let offset = 0;
+		if (rect.left < margin) {
+			offset = margin - rect.left;
+		} else if (rect.right > viewportWidth - margin) {
+			offset = viewportWidth - margin - rect.right;
+		}
+
+		if (offset !== 0) {
+			const align = tooltip.dataset.align || 'center';
+			if (align === 'center') {
+				tooltip.style.transform = `translateX(calc(-50% + ${offset}px))`;
+			} else {
+				tooltip.style.transform = `translateX(${offset}px)`;
+			}
+		}
+	}
+
+	const handleEvent = (e: Event) => {
+		const target = e.target as HTMLElement;
+		if (target && target.closest) {
+			const group = target.closest('.group');
+			if (group) {
+				const tooltip = group.querySelector('[role="tooltip"]') as HTMLElement;
+				if (tooltip) {
+					adjustTooltip(tooltip);
+				}
+			}
+		}
+	};
+
+	// Event delegation to capture focus, hover, and mobile touch/tap interactions
+	document.addEventListener('mouseenter', handleEvent, true);
+	document.addEventListener('focusin', handleEvent, true);
+	document.addEventListener('touchstart', handleEvent, { capture: true, passive: true });
+</script>

@@ -61,9 +61,7 @@ for (const item of shoppingList) {
 												class="h-5 w-5 shrink-0 rounded border-neutral-300 accent-primary-600 dark:accent-primary-500"
 											/>
 											<span class="text-sm">
-												<strong class="font-semibold">
-													{formatQuantity(item.total_quantity)} {item.unit}
-												</strong>{' '}
+												<strong class="font-semibold">{`${formatQuantity(item.total_quantity)} ${item.unit}`}</strong>{' '}
 												{translateIngredient(locale, item.name)}
 												{item.notes && <small class="block text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</small>}
 											</span>
