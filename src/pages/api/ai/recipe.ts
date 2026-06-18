@@ -18,7 +18,9 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const db = getDb();
 	const userId = locals.userId;
 	try {
-		const settings = await resolveAiRequest(db, userId);
+		const provider = formData.get('provider') || undefined;
+		const model = formData.get('model') || undefined;
+		const settings = await resolveAiRequest(db, userId, { provider, model });
 
 		if (!(await consumeAiQuota(db, userId))) {
 			return redirect(`${backTo}?ai_error=${encodeURIComponent('AI request limit reached. Try again next hour.')}`);
