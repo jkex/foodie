@@ -3,9 +3,13 @@ import { consumeAiQuota, resolveAiRequest, suggestPlanOrder } from '../../../lib
 import { addMealPlanItem, createMealPlan, getDb, latestMealPlan, listRecipes } from '../../../lib/db';
 import { applyRecipeOrder, buildPlan, PLAN_HORIZON_DAYS, weeklyPlanStartDate } from '../../../lib/plan';
 
-export const POST: APIRoute = async ({ redirect, locals }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
 	const db = getDb();
 	const userId = locals.userId;
+
+	const formData = await request.formData();
+	const provider = formData.get('provider') || undefined;
+	const model = formData.get('model') || undefined;
 
 	const recipes = await listRecipes(db, userId);
 	if (recipes.length === 0) {
@@ -19,7 +23,7 @@ export const POST: APIRoute = async ({ redirect, locals }) => {
 	const peopleCount = latest?.people_count ?? 2;
 
 	try {
-		const settings = await resolveAiRequest(db, userId);
+		const settings = await resolveAiRequest(db, userId, { provider, model });
 		if (!(await consumeAiQuota(db, userId))) {
 			return redirect(`/plan?ai_error=${encodeURIComponent('AI request limit reached. Try again next hour.')}`);
 		}
