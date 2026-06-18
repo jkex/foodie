@@ -112,7 +112,29 @@ const navItems: NavItem[] = [
 		<script is:inline>
 			if ('serviceWorker' in navigator) {
 				window.addEventListener('load', () => {
-					navigator.serviceWorker.register('/sw.js').catch(() => {});
+					navigator.serviceWorker
+						.register('/sw.js')
+						.then((registration) => {
+							// Check for updates on initial page load
+							registration.update().catch(() => {});
+
+							// Check for updates whenever the user brings the app back to focus
+							document.addEventListener('visibilitychange', () => {
+								if (document.visibilityState === 'visible') {
+									registration.update().catch(() => {});
+								}
+							});
+						})
+						.catch(() => {});
+
+					// Reload the page if a new service worker has taken control
+					let refreshing = false;
+					navigator.serviceWorker.addEventListener('controllerchange', () => {
+						if (!refreshing) {
+							refreshing = true;
+							window.location.reload();
+						}
+					});
 				});
 			}
 

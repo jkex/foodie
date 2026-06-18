@@ -177,6 +177,15 @@ PWA files:
 
 The service worker caches the app shell and static assets only. API routes and form submissions stay network-first by not handling non-GET requests or `/api/*` requests in the service worker.
 
+### PWA Automatic Updates
+
+To ensure users always run the latest client code and assets:
+
+- **Triggering Updates (Automated)**: To trigger an update on users' browsers, `astro.config.mjs` registers a custom `pwa-version-plugin` integration. At the end of every build (for both staging and production stages), this plugin automatically generates a unique timestamp-based `CACHE_NAME` and updates it in the output `dist/client/sw.js` file. The byte change is detected by the browser on the next update check, initiating the PWA update.
+- **Immediate Activation**: `public/sw.js` uses `self.skipWaiting()` during install and `self.clients.claim()` during activation to force the new service worker to take control of all clients immediately.
+- **Proactive Checks**: `src/layouts/AppLayout.astro` registers the service worker and triggers manual checks with `registration.update()` on page load and on `visibilitychange` (whenever the user brings the app back to focus).
+- **Reloading Clients**: `src/layouts/AppLayout.astro` listens for the `controllerchange` event to detect when the new service worker takes over, triggering a page reload (`window.location.reload()`) to cleanly reload stale assets.
+
 Mobile-first shell rules:
 
 - Primary phone workflows are Plan, Recipes, Shopping, and Settings.
