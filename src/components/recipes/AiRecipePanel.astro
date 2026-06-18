@@ -4,7 +4,7 @@ import { useTranslations } from '../../lib/i18n';
 import Panel from '../ui/Panel.astro';
 import Textarea from '../ui/Textarea.astro';
 import { getDb } from '../../lib/db';
-import { getAiSettings, CURATED_MODELS, PROVIDER_LABELS } from '../../lib/ai';
+import { getAiSettings, CURATED_MODELS, PROVIDER_LABELS, isAiProvider, type ModelOption } from '../../lib/ai';
 
 const { mode, configured, error } = Astro.props as {
 	mode: 'generate' | 'edit';
@@ -29,11 +29,15 @@ const aiSettings = await getAiSettings(db, userId);
 const providers = aiSettings.providers;
 const active = aiSettings.active;
 
-const activeProvider = active?.provider;
-const activeModelId = active?.model;
+const promptParam = Astro.url.searchParams.get('prompt') || '';
+const providerParam = Astro.url.searchParams.get('provider') || '';
+const modelParam = Astro.url.searchParams.get('model') || '';
+
+const activeProvider = isAiProvider(providerParam) ? providerParam : active?.provider;
+const activeModelId = modelParam || active?.model;
 let activeModelLabel = activeModelId || '';
 if (activeProvider && activeModelId) {
-	const found = CURATED_MODELS[activeProvider]?.find((m) => m.id === activeModelId);
+	const found = CURATED_MODELS[activeProvider]?.find((m: ModelOption) => m.id === activeModelId);
 	if (found) {
 		activeModelLabel = found.label;
 	}
@@ -557,7 +561,7 @@ if (activeProvider && activeModelId) {
 				<input type="hidden" name="action" value="generate" />
 				<input type="hidden" name="provider" id="generate-provider" value={activeProvider} />
 				<input type="hidden" name="model" id="generate-model" value={activeModelId} />
-				<Textarea name="prompt" rows="2" required placeholder={t('aiPromptPlaceholder')} />
+				<Textarea name="prompt" rows="2" required placeholder={t('aiPromptPlaceholder')}>{promptParam}</Textarea>
 				<div class="flex items-center">
 					<div class="inline-flex rounded-xl border border-primary-600/30 dark:border-primary-500/20 shadow-xs">
 						<!-- Left Action Button -->
