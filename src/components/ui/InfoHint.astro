@@ -21,7 +21,7 @@ const position = [
 ];
 ---
 
-<span class:list={['group relative inline-flex align-middle', className]}>
+<span class:list={['group relative inline-block align-middle w-5 h-5 shrink-0', className]}>
 	<button
 		type="button"
 		aria-label={label}
@@ -33,7 +33,8 @@ const position = [
 		role="tooltip"
 		data-align={align}
 		class:list={[
-			'pointer-events-none absolute z-50 w-56 max-w-[80vw] rounded-xl border border-neutral-200 bg-white p-3 text-left text-xs leading-relaxed font-normal text-neutral-600 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300',
+			'pointer-events-none absolute z-50 w-56 max-w-[80vw] rounded-xl border border-neutral-200 bg-white p-3 text-left text-xs leading-relaxed font-normal text-neutral-600 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300',
+			'hidden group-hover:block group-hover:animate-tooltip-in group-focus-within:block group-focus-within:animate-tooltip-in',
 			...position,
 		]}
 	>
@@ -43,27 +44,63 @@ const position = [
 
 <script>
 	function adjustTooltip(tooltip: HTMLElement) {
-		// Reset any previous custom translation so we measure the original CSS layout position
+		const isHidden = window.getComputedStyle(tooltip).display === 'none';
+		if (isHidden) {
+			tooltip.style.display = 'block';
+		}
+
+		// Reset inline layout and transform styles so we measure the original element dimensions
+		tooltip.style.left = '';
+		tooltip.style.right = '';
 		tooltip.style.transform = '';
 
 		const rect = tooltip.getBoundingClientRect();
+		const parentRect = tooltip.parentElement ? tooltip.parentElement.getBoundingClientRect() : null;
 		const viewportWidth = window.innerWidth;
 		const margin = 8; // Keep 8px gap from screen edges
 
+		if (parentRect) {
+			// Measure available screen space on both sides of the parent element
+			const spaceOnLeft = parentRect.right;
+			const spaceOnRight = viewportWidth - parentRect.left;
+
+			// Check where we have enough room to fit the tooltip box
+			if (spaceOnRight < rect.width + margin && spaceOnLeft > spaceOnRight) {
+				// Not enough space on the right, and more space on the left: Align to the right (extends to the left)
+				tooltip.style.left = 'auto';
+				tooltip.style.right = '0';
+			} else if (spaceOnLeft < rect.width + margin && spaceOnRight > spaceOnLeft) {
+				// Not enough space on the left, and more space on the right: Align to the left (extends to the right)
+				tooltip.style.left = '0';
+				tooltip.style.right = 'auto';
+			} else {
+				// Default to center alignment
+				tooltip.style.left = '50%';
+				tooltip.style.right = 'auto';
+				tooltip.style.transform = 'translateX(-50%)';
+			}
+		}
+
+		// Apply fine-tuning offset if the aligned tooltip still clips the screen edges (e.g. extremely narrow devices)
+		const newRect = tooltip.getBoundingClientRect();
 		let offset = 0;
-		if (rect.left < margin) {
-			offset = margin - rect.left;
-		} else if (rect.right > viewportWidth - margin) {
-			offset = viewportWidth - margin - rect.right;
+		if (newRect.left < margin) {
+			offset = margin - newRect.left;
+		} else if (newRect.right > viewportWidth - margin) {
+			offset = viewportWidth - margin - newRect.right;
 		}
 
 		if (offset !== 0) {
-			const align = tooltip.dataset.align || 'center';
-			if (align === 'center') {
-				tooltip.style.transform = `translateX(calc(-50% + ${offset}px))`;
+			const currentTransform = tooltip.style.transform;
+			if (currentTransform) {
+				tooltip.style.transform = `${currentTransform} translateX(${offset}px)`;
 			} else {
 				tooltip.style.transform = `translateX(${offset}px)`;
 			}
+		}
+
+		if (isHidden) {
+			tooltip.style.display = '';
 		}
 	}
 
